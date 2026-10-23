@@ -26,26 +26,52 @@ public class AppointmentsController : ControllerBase
     }
 
 	// POST request to create new appointments
+		
 	[HttpPost]
 	public IActionResult CreateAppointment([FromBody] Appointment appointment)
 	{
-		// Check if any patient information is invalid
-		if (!_dataStore.Doctors.Any(dr => dr.Id == appointment.DoctorId)  ||
-			!_dataStore.Patients.Any(p => p.Id == appointment.PatientId) ||
-			appointment.StartTime == default
-			)
+		// 1. Validate Doctor and Patient IDs
+		if (!_dataStore.Doctors.Any(dr => dr.Id == appointment.DoctorId) ||
+			!_dataStore.Patients.Any(p => p.Id == appointment.PatientId))
 		{
-			return BadRequest("Error in patient data entered; check info...");
+			return BadRequest("Invalid doctor or patient ID.");
 		}
-		else
-		{
-			// Generate ID and add patient
-			appointment.Id = _dataStore.Appointments.Count + 1;
-			appointment.IsCancelled = false;
-			_dataStore.Appointments.Add(appointment);
 
-			return StatusCode(201, appointment);
+		// 2. Validate 30-minute appointment slots
+		if (appointment.StartTime == default ||
+			(appointment.StartTime.Minute != 0 &&
+			appointment.StartTime.Minute != 30) ||
+			appointment.StartTime.Second != 0 ||
+			appointment.StartTime.Millisecond != 0)
+		{
+			return BadRequest("Appointments must start on the hour or half hour.");
 		}
+
+		// 3. Validate working hours: 08:00 to 16:00
+		if (appointment.StartTime.Hour < 8 ||
+			appointment.StartTime.Hour >= 16)
+		{
+			return BadRequest("Appointments are only available from 08:00 to 16:00.");
+		}
+
+		// 4. Validate working days: Sunday to Thursday
+		if (appointment.StartTime.DayOfWeek == DayOfWeek.Friday ||
+			appointment.StartTime.DayOfWeek == DayOfWeek.Saturday)
+		{
+			return BadRequest("Appointments are only available Sunday to Thursday.");
+		}
+
+		// 5. Reject appointments in the past
+		if (appointment.StartTime <= DateTime.Now)
+		{
+			return BadRequest("Cannot book an appointment in the past.");
+		}
+
+		// 6. Create appointment if all validations pass
+		appointment.Id = _dataStore.Appointments.Count + 1;
+		appointment.IsCancelled = false;
+		_dataStore.Appointments.Add(appointment);
+
+		return StatusCode(201, appointment);
 	}
-
 }

@@ -1,1 +1,28 @@
 Take-Home Assessment - Clinic Appointment Booking.docx
+what i completed, next steps.docx
+
+# .NET build files
+bin/
+obj/
+TestResults/
+*.user
+*.suo
+*.rsuser
+*.coverage
+*.coveragexml
+
+# Visual Studio and VS Code
+.vs/
+.vscode/
+.idea/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+appsettings.Local.json
+appsettings.*.Local.json
+
+# System files
+.DS_Store
+Thumbs.db

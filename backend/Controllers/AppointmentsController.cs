@@ -20,8 +20,38 @@ public class AppointmentsController : ControllerBase
 
     // GET request to retrieve appointments
     [HttpGet]
-    public IActionResult GetAppointments()
+    public IActionResult GetAppointments(	// Filters Added
+		[FromQuery] int? doctorId,
+    	[FromQuery] DateOnly? date,
+		[FromQuery] string? speciality
+
+	)
     {
+		var appointments = _dataStore.Appointments.AsEnumerable();
+
+		// Filter by Doctor ID
+		if (doctorId.HasValue)
+		{
+			appointments = appointments.Where(filter_id => filter_id.DoctorId == doctorId.Value);
+		}
+
+		// Filter by Date
+		if (date.HasValue)
+		{
+			appointments = appointments.Where(filter_date =>
+				DateOnly.FromDateTime(filter_date.StartTime) == date.Value);
+		}
+
+		// Filter by specialtiy
+		if (!string.IsNullOrWhiteSpace(speciality))
+		{
+			appointments = appointments.Where(speicality =>_dataStore.Doctors.Any(
+				filter_speciality => filter_speciality.Id == speicality.DoctorId &&
+					string.Equals(filter_speciality.Specialty, speciality,
+						StringComparison.OrdinalIgnoreCase))); // not case sensistive
+		}
+
+
         return Ok(_dataStore.Appointments);
     }
 

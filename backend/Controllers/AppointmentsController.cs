@@ -82,4 +82,32 @@ public class AppointmentsController : ControllerBase
 
 		return StatusCode(201, appointment);
 	}
+
+
+    // DELETE request to cancel an appointment
+    [HttpDelete("{id}")]
+    public IActionResult CancelAppointment(int id)
+    {
+        // find the appointment by ID
+        var appointment = _dataStore.Appointments
+            .FirstOrDefault(a => a.Id == id); // instead of .Any() because it retrieves the actual object i.e. data
+
+        // check if appointment exists
+        if (appointment == null)
+        {
+            return NotFound("Appointment not found.");
+        }
+
+        // Check if already cancelled
+        if (appointment.IsCancelled)
+        {
+            return Conflict("Appointment is already cancelled.");
+        }
+
+        // Cancel the appointment
+        appointment.IsCancelled = true;
+
+        return NoContent();
+    }
+
 }

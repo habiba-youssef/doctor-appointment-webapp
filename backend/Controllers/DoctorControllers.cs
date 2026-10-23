@@ -3,6 +3,7 @@
 using Microsoft.AspNetCore.Mvc;
 using DoctorsAppointment.Api.Data;
 
+
 namespace DoctorsAppointment.Api.Controllers;
 
 [ApiController]

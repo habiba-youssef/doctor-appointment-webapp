@@ -12,7 +12,6 @@ public class Doctor
     public int Id { get; set; }
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
-
     public string Specialty { get; set; } = string.Empty;
 	public GenderOption Gender{ get; set; }
 	public decimal ConsultationFee { get; set;}
@@ -22,9 +21,10 @@ public class Doctor
 public class Patient
 {
     public int Id { get; set; }
-    public string FullName { get; set; } = string.Empty;
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
 	public GenderOption Gender{ get; set; }
-	public int PhoneNumber { get; set; }
+	public string PhoneNumber { get; set; } = string.Empty;
 	public DateOnly DateOfBirth {get; set;}
 }
 

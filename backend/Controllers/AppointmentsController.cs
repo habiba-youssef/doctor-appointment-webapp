@@ -22,8 +22,8 @@ public class AppointmentsController : ControllerBase
     [HttpGet]
     public IActionResult GetAppointments(	// Filters Added
 		[FromQuery] int? doctorId,
-    	[FromQuery] DateOnly? date,
-		[FromQuery] string? speciality
+    	[FromQuery] DateOnly? date
+		// [FromQuery] string? speciality
 
 	)
     {
@@ -42,17 +42,18 @@ public class AppointmentsController : ControllerBase
 				DateOnly.FromDateTime(filter_date.StartTime) == date.Value);
 		}
 
-		// Filter by specialtiy
-		if (!string.IsNullOrWhiteSpace(speciality))
-		{
-			appointments = appointments.Where(speicality =>_dataStore.Doctors.Any(
-				filter_speciality => filter_speciality.Id == speicality.DoctorId &&
-					string.Equals(filter_speciality.Specialty, speciality,
-						StringComparison.OrdinalIgnoreCase))); // not case sensistive
-		}
+		// // Filter by specialtiy
+		// if (!string.IsNullOrWhiteSpace(speciality))
+		// {
+		// 	appointments = appointments.Where(speicality =>_dataStore.Doctors.Any(
+		// 		filter_speciality => filter_speciality.Id == speicality.DoctorId &&
+		// 			string.Equals(filter_speciality.Specialty, speciality,
+		// 				StringComparison.OrdinalIgnoreCase))); // not case sensistive
+		// }
 
 
-        return Ok(_dataStore.Appointments);
+        // return Ok(_dataStore.Appointments);
+		return Ok(appointments.ToList());
     }
 
 	// POST request to create new appointments
@@ -140,4 +141,55 @@ public class AppointmentsController : ControllerBase
         return NoContent();
     }
 
+
+	// Get Doctor's Avaliability
+	[HttpGet("availability")]
+	public IActionResult GetAvailability(
+		[FromQuery] int doctorId,
+		[FromQuery] DateOnly date)
+	{
+		// 1. Check if doctor exists
+		if (!_dataStore.Doctors.Any(doctor => doctor.Id == doctorId))
+		{
+			return NotFound("Doctor not found.");
+		}
+
+		// 2. Check if date is valid
+		if (date == default)
+		{
+			return BadRequest("Invalid date.");
+		}
+
+		// 3. Check working days
+		if (date.DayOfWeek == DayOfWeek.Friday ||
+			date.DayOfWeek == DayOfWeek.Saturday)
+		{
+			return BadRequest("The clinic is closed on Fridays and Saturdays.");
+		}
+
+		// 4. Generate the 16 possible time slots
+		var slots = new List<object>();
+		var now = DateTime.Now;
+
+		for (int i = 0; i < 16; i++)
+		{
+			var slotTime = date.ToDateTime(new TimeOnly(8, 0))
+							.AddMinutes(i * 30);
+
+			// 5. Check if slot is already booked
+			bool booked = _dataStore.Appointments.Any(a =>
+				a.DoctorId == doctorId &&
+				a.StartTime == slotTime &&
+				!a.IsCancelled);
+
+			// 6. Add slot and availability status
+			slots.Add(new
+			{
+				time = slotTime.ToString("HH:mm"),
+				available = !booked && (slotTime > now),
+			});
+		}
+
+		return Ok(slots);
+	}
 }

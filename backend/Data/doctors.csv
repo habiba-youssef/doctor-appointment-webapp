@@ -1,0 +1,21 @@
+Id,FirstName,LastName,Specialty,Gender,ConsultationFee
+1,Dr. Sarah,Ahmed,Cardiology,Female,20
+2,Dr. Omar,Ali,Neurology,Male,25
+3,Dr. Fatima,Hassan,General Medicine,Female,30
+4,Dr. Khaled,Youssef,Neurology,Male,35
+5,Dr. Ahmed,Mohammed,Cardiology,Male,30
+6,Dr. Layla,Ibrahim,Gastroenterology,Female,40
+7,Dr. Youssef,Mahmoud,Cardiology,Male,35
+8,Dr. Mariam,Saleh,ENT,Female,25
+9,Dr. Abdullah,Khalil,Neurology,Male,30
+10,Dr. Noor,Adel,General Medicine,Female,25
+11,Dr. Hassan,Nasser,General Medicine,Male,20
+12,Dr. Aisha,Rashid,Gastroenterology,Female,35
+13,Dr. Tarek,Samir,ENT,Male,30
+14,Dr. Huda,Farouk,Cardiology,Female,40
+15,Dr. Faisal,Hamad,Neurology,Male,35
+16,Dr. Reem,Mustafa,ENT,Female,25
+17,Dr. Bilal,Karim,Gastroenterology,Male,40
+18,Dr. Salma,Abdullah,General Medicine,Female,35
+19,Dr. Ziad,Amir,Gastroenterology,Male,40
+20,Dr. Dina,Osman,ENT,Female,20

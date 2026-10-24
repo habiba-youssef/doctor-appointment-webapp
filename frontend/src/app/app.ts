@@ -46,6 +46,7 @@ export class App {
   // signals 
   backendStatus = signal<'checking' | 'online' | 'offline'>('checking');
   doctors = signal<Doctor[]>([]); // to store doctors retrieved
+  patients = signal<Patient[]>([]);
   availabilitySlots = signal<TimeSlot[]>([]); // to store time slots retrieved
   selectedDoctor = signal<Doctor | null>(null); // keeps track of which doctor is selected
   selectedDate = signal('');  // keeps track of date selected
@@ -67,6 +68,7 @@ export class App {
         this.backendStatus.set('online');
         this.GetDoctorList(); // run GetDoctorList() as soon as backend runs
         this.GetBookingsList();
+        this.GetPatientsList();
 
       },
       error: () => {
@@ -89,6 +91,17 @@ export class App {
       }
     });
   }
+
+  GetPatientsList() {
+    this.http.get<Patient[]>('http://localhost:5126/patients')
+      .subscribe({
+        next: (response) => {this.patients.set(response);},
+        error: (error) => {
+          console.error('Failed to retrieve patients:', error);
+        }
+      });
+  }
+
 
   selectDoctor(doctor: Doctor) {
     this.selectedDoctor.set(doctor);
@@ -198,6 +211,7 @@ export class App {
             form.reset();                     // Reset patient form
             this.GetAvailability();           // Refresh availability
             this.GetBookingsList();           // Refresh booking list
+            this.GetPatientsList();
 
           },
 
@@ -231,5 +245,21 @@ export class App {
       }
     });
   }
+
+  getDoctorName(doctorId: number): string {
+    const doctor = this.doctors().find(d => d.id === doctorId);
+
+    return doctor
+      ? `Dr. ${doctor.firstName} ${doctor.lastName}`
+      : 'Unknown Doctor';
+  }
+
+  getPatientName(patientId: number): string {
+  const patient = this.patients().find(p => p.id === patientId);
+
+  return patient
+    ? `${patient.firstName} ${patient.lastName}`
+    : 'Unknown Patient';
+}
 
 }

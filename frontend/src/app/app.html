@@ -190,8 +190,8 @@
 		<tbody>
 		@for (appointment of appointments(); track appointment.id) {
 			<tr>
-			<td>{{appointment.patientId}}</td>
-			<td>{{appointment.doctorId}}</td>
+			<td>{{ getPatientName(appointment.patientId) }}</td>
+			<td>{{ getDoctorName(appointment.doctorId) }}</td>
 			<td>{{appointment.startTime.split('T')[0]}}</td>
 			<td>{{appointment.startTime.slice(11, 16)}}</td>
 			<td>

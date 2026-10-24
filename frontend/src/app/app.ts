@@ -1,19 +1,5 @@
-// import { Component, signal } from '@angular/core';
-// import { RouterOutlet } from '@angular/router';
-
-// @Component({
-//   imports: [RouterOutlet],
-//   selector: 'app-root',
-//   styleUrl: './app.css',
-//   templateUrl: './app.html',
-// })
-// export class App {
-//   protected readonly title = signal('frontend');
-// }
-
-
 import { Component, inject, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http'; // Allows Angular to send HTTP requests to your backend API.
 
 @Component({
   selector: 'app-root',
@@ -21,20 +7,59 @@ import { HttpClient } from '@angular/common/http';
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
-export class App {
-  private http = inject(HttpClient);
 
-  backendMessage = signal('Connecting to backend...');
+
+// /// App class
+// export class App {
+//   private http = inject(HttpClient);
+
+//   BEstatus = signal('Fetching data...');
+
+
+//   constructor() {
+//     this.http.get('http://localhost:5126/status', {
+//       responseType: 'text'
+//     }).subscribe({
+//       next: (response) => {
+//         this.BEstatus.set(response);
+//       },
+
+
+//       // if signal connection not made, means backend not running
+//       error: () => {
+//         this.BEstatus.set('Backend connection failed');
+//       }
+//     });
+//   }
+// }
+
+
+
+export class App {
+
+  private http = inject(HttpClient);
+  // Stores the current backend status
+  backendStatus = signal<'checking' | 'online' | 'offline'>('checking');
 
   constructor() {
+    this.checkBackend();
+  }
+
+  checkBackend() {
+    this.backendStatus.set('checking');
+
     this.http.get('http://localhost:5126/status', {
       responseType: 'text'
     }).subscribe({
-      next: (response) => {
-        this.backendMessage.set(response);
+      next: () => {
+        this.backendStatus.set('online');
       },
-      error: () => {
-        this.backendMessage.set('Backend connection failed');
+      // error: () => {
+      //   this.backendStatus.set('offline');
+      error: (error) => {
+        console.error('Backend status check failed:', error);
+        this.backendStatus.set('offline');
+// }
       }
     });
   }

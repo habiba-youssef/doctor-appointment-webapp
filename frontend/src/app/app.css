@@ -145,3 +145,27 @@ tr:nth-child(even) {
     padding: 6px;
   }
 }
+
+/* Backend Status Messages */
+.status-message {
+  max-width: 500px;
+  margin: 100px auto;
+  padding: 30px;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.status-message h2 {
+  margin-bottom: 15px;
+}
+
+/* Error Message */
+.status-message.error {
+  border-color: #dc3545;
+}
+
+.status-message.error h2 {
+  color: #dc3545;
+}

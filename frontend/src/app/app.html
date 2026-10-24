@@ -1,128 +1,149 @@
 <!-- refernce: https://github.com/surajm-3290/student-dashboard-ui-html-css/tree/main -->
+@if (backendStatus() === 'checking') {
 
-<header>
-  <h1>Clinic Appointment Booking</h1>
-  <p>Receptionist Dashboard</p>
-</header>
+  <!-- Backend is being checked -->
+  <div class="status-message">
+    <h2>Fetching Data...</h2>
+    <p>Please wait while we check the server connection.</p>
+  </div>
 
-<main>
+} @else if (backendStatus() === 'offline') {
+  <!-- Backend connection failed -->
+  <div class="status-message error">
+    <h2>Backend Connection Failed</h2>
+    <p>Unable to connect to the clinic server.</p>
+    <p>Please make sure the backend is running.</p>
 
-  <!-- SECTION 1: Select Doctor and Date -->
-  <section>
-    <h2>Select Doctor and Date</h2>
+    <button type="button" (click)="checkBackend()">
+      Retry Connection
+    </button>
+  </div>
 
-    <label for="doctor">Doctor:</label>
-    <select id="doctor" name="doctor">
-      <option value="">Select a doctor</option>
-      <option value="1">Dr. Ahmed - Cardiology</option>
-      <option value="2">Dr. Sara - Dermatology</option>
-      <option value="3">Dr. Ali - Pediatrics</option>
-    </select>
+} @else {
+	<header>
+	<h1>Clinic Appointment Booking</h1>
+	<p>Receptionist Dashboard</p>
+	</header>
 
-    <br><br>
+	<main>
 
-    <label for="date">Appointment Date:</label>
-    <input type="date" id="date" name="date">
-  </section>
+	<!-- SECTION 1: Select Doctor and Date -->
+	<section>
+		<h2>Select Doctor and Date</h2>
 
-  <hr>
+		<label for="doctor">Doctor:</label>
+		<select id="doctor" name="doctor">
+		<option value="">Select a doctor</option>
+		<option value="1">Dr. Khaled Youssef</option>
+		<option value="2">Dr. Sara - Dermatology</option>
+		<option value="3">Dr. Ali - Pediatrics</option>
+		</select>
 
-  <!-- SECTION 2: Available Time Slots -->
-  <section>
-    <h2>Appointment Time Slots</h2>
+		<br><br>
 
-    <p>Select an available time slot:</p>
+		<label for="date">Appointment Date:</label>
+		<input type="date" id="date" name="date">
+	</section>
 
-    <button type="button">08:00 - Available</button>
-    <button type="button" disabled>08:30 - Booked</button>
-    <button type="button">09:00 - Available</button>
-    <button type="button">09:30 - Available</button>
-    <button type="button" disabled>10:00 - Booked</button>
-    <button type="button">10:30 - Available</button>
-  </section>
+	<hr>
 
-  <hr>
+	<!-- SECTION 2: Available Time Slots -->
+	<section>
+		<h2>Appointment Time Slots</h2>
 
-  <!-- SECTION 3: Patient Registration -->
-  <section>
-    <h2>Patient Information</h2>
+		<p>Select an available time slot:</p>
 
-    <form>
-      <label for="fullName">Full Name:</label>
-      <input
-        type="text"
-        id="fullName"
-        name="fullName"
-        placeholder="Enter full name"
-        required
-      >
+		<button type="button">08:00 - Available</button>
+		<button type="button" disabled>08:30 - Booked</button>
+		<button type="button">09:00 - Available</button>
+		<button type="button">09:30 - Available</button>
+		<button type="button" disabled>10:00 - Booked</button>
+		<button type="button">10:30 - Available</button>
+	</section>
 
-      <br><br>
+	<hr>
 
-      <label for="phone">Phone Number:</label>
-      <input
-        type="tel"
-        id="phone"
-        name="phone"
-        placeholder="Enter phone number"
-        required
-      >
+	<!-- SECTION 3: Patient Registration -->
+	<section>
+		<h2>Patient Information</h2>
 
-      <br><br>
+		<form>
+		<label for="fullName">Full Name:</label>
+		<input
+			type="text"
+			id="fullName"
+			name="fullName"
+			placeholder="Enter full name"
+			required
+		>
 
-      <label for="dob">Date of Birth:</label>
-      <input
-        type="date"
-        id="dob"
-        name="dob"
-        required
-      >
+		<br><br>
 
-      <br><br>
+		<label for="phone">Phone Number:</label>
+		<input
+			type="tel"
+			id="phone"
+			name="phone"
+			placeholder="Enter phone number"
+			required
+		>
 
-      <button type="button">Book Appointment</button>
-    </form>
-  </section>
+		<br><br>
 
-  <hr>
+		<label for="dob">Date of Birth:</label>
+		<input
+			type="date"
+			id="dob"
+			name="dob"
+			required
+		>
 
-  <!-- SECTION 4: Appointments List -->
-  <section>
-    <h2>Booked Appointments</h2>
+		<br><br>
 
-    <table border="1">
-      <thead>
-        <tr>
-          <th>Patient</th>
-          <th>Doctor</th>
-          <th>Date</th>
-          <th>Time</th>
-          <th>Action</th>
-        </tr>
-      </thead>
+		<button type="button">Book Appointment</button>
+		</form>
+	</section>
 
-      <tbody>
-        <tr>
-          <td>Mohammed Ali</td>
-          <td>Dr. Ahmed</td>
-          <td>2026-10-26</td>
-          <td>08:30</td>
-          <td>
-            <button type="button">Cancel</button>
-          </td>
-        </tr>
+	<hr>
 
-        <tr>
-          <td>Fatima Hassan</td>
-          <td>Dr. Sara</td>
-          <td>2026-10-27</td>
-          <td>10:00</td>
-          <td>
-            <button type="button">Cancel</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </section>
+	<!-- SECTION 4: Appointments List -->
+	<section>
+		<h2>Booked Appointments</h2>
 
-</main>
+		<table border="1">
+		<thead>
+			<tr>
+			<th>Patient</th>
+			<th>Doctor</th>
+			<th>Date</th>
+			<th>Time</th>
+			<th>Action</th>
+			</tr>
+		</thead>
+
+		<tbody>
+			<tr>
+			<td>Mohammed Ali</td>
+			<td>Dr. Ahmed</td>
+			<td>2026-10-26</td>
+			<td>08:30</td>
+			<td>
+				<button type="button">Cancel</button>
+			</td>
+			</tr>
+
+			<tr>
+			<td>Fatima Hassan</td>
+			<td>Dr. Sara</td>
+			<td>2026-10-27</td>
+			<td>10:00</td>
+			<td>
+				<button type="button">Cancel</button>
+			</td>
+			</tr>
+		</tbody>
+		</table>
+	</section>
+
+	</main>
+}

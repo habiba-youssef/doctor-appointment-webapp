@@ -7,7 +7,7 @@ using DoctorsAppointment.Api.Data;
 namespace DoctorsAppointment.Api.Controllers;
 
 [ApiController]
-[Route("api/doctors")]
+[Route("doctors")]
 public class DoctorsController : ControllerBase
 {
     private readonly DataStore _dataStore;

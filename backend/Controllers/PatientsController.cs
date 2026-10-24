@@ -5,7 +5,7 @@ using DoctorsAppointment.Api.Models;
 namespace DoctorsAppointment.Api.Controllers;
 
 [ApiController]
-[Route("api/patients")]
+[Route("patients")]
 public class PatientsController : ControllerBase
 {
     private readonly DataStore _dataStore;
@@ -16,14 +16,14 @@ public class PatientsController : ControllerBase
         _dataStore = dataStore;
     }
 
-    // GET /api/patients — Retrieve all registered patients from DataStore.Patients
+    // GET /patients — Retrieve all registered patients from DataStore.Patients
     [HttpGet]
     public IActionResult GetPatients()
     {
         return Ok(_dataStore.Patients);
     }
 
-	// Post /api/patients — Register a new patient by receiving their details and adding them to DataStore.Patients
+	// Post /patients — Register a new patient by receiving their details and adding them to DataStore.Patients
 
 
 	// [HttpPost]

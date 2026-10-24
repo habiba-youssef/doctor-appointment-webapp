@@ -8,7 +8,7 @@ using DoctorsAppointment.Api.Models;
 namespace DoctorsAppointment.Api.Controllers;
 
 [ApiController]
-[Route("api/appointments")]
+[Route("appointments")]
 public class AppointmentsController : ControllerBase
 {
     private readonly DataStore _dataStore;

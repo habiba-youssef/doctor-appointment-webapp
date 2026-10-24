@@ -1,6 +1,15 @@
 import { Component, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http'; // Allows Angular to send HTTP requests to your backend API.
 
+interface Doctor {
+  id: number;
+  firstName: string;
+  lastName: string;
+  specialty: string;
+  gender: number;
+  consultationFee: number;
+}
+
 @Component({
   selector: 'app-root',
   imports: [],
@@ -8,38 +17,13 @@ import { HttpClient } from '@angular/common/http'; // Allows Angular to send HTT
   styleUrl: './app.css'
 })
 
-
-// /// App class
-// export class App {
-//   private http = inject(HttpClient);
-
-//   BEstatus = signal('Fetching data...');
-
-
-//   constructor() {
-//     this.http.get('http://localhost:5126/status', {
-//       responseType: 'text'
-//     }).subscribe({
-//       next: (response) => {
-//         this.BEstatus.set(response);
-//       },
-
-
-//       // if signal connection not made, means backend not running
-//       error: () => {
-//         this.BEstatus.set('Backend connection failed');
-//       }
-//     });
-//   }
-// }
-
-
-
 export class App {
 
   private http = inject(HttpClient);
-  // Stores the current backend status
+  // signals 
   backendStatus = signal<'checking' | 'online' | 'offline'>('checking');
+  doctors = signal<Doctor[]>([]);
+  selectedDoctor = signal<Doctor | null>(null); // keeps track of which doctor is selected
 
   constructor() {
     this.checkBackend();
@@ -53,14 +37,31 @@ export class App {
     }).subscribe({
       next: () => {
         this.backendStatus.set('online');
+        this.GetDoctorList(); // run GetDoctorList() as soon as backend runs
       },
-      // error: () => {
-      //   this.backendStatus.set('offline');
-      error: (error) => {
-        console.error('Backend status check failed:', error);
+      error: () => {
         this.backendStatus.set('offline');
-// }
       }
     });
   }
+
+  GetDoctorList() {
+    this.http.get<Doctor[]>('http://localhost:5126/doctors')
+    .subscribe({
+      next: (response) => {this.doctors.set(
+        response.sort((a, b) => a.specialty.localeCompare(b.specialty)) // sorting by speciality and alphabetically
+      );
+        // console.log('Doctors received:', response);
+      },
+
+      error: (error) => {
+        console.error('Failed to retrieve doctors:', error);
+      }
+    });
+  }
+
+  selectDoctor(doctor: Doctor) {
+    this.selectedDoctor.set(doctor);
+  }
+
 }

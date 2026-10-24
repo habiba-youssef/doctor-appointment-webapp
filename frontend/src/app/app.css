@@ -110,6 +110,11 @@ table {
   margin-top: 15px;
 }
 
+/* highlight doctor selection */
+table tbody tr.selected-doctor {
+  background-color: #e6f4ea;
+}
+
 th,
 td {
   padding: 12px;

@@ -29,23 +29,61 @@
 
 	<!-- SECTION 1: Select Doctor and Date -->
 	<section>
-		<h2>Select Doctor and Date</h2>
+	<h2>Select Doctor and Date</h2>
 
-		<label for="doctor">Doctor:</label>
-		<select id="doctor" name="doctor">
-		<option value="">Select a doctor</option>
-		<option value="1">Dr. Khaled Youssef</option>
-		<option value="2">Dr. Sara - Dermatology</option>
-		<option value="3">Dr. Ali - Pediatrics</option>
-		</select>
+	<h3>Available Doctors</h3>
 
-		<br><br>
+	<table>
+		<thead>
+		<tr>
+			<th>ID</th>
+			<th>Doctor Name</th>
+			<th>Specialty</th>
+			<th>Gender</th>
+			<th>Consultation Fee</th>
+			<th>Action</th>
+		</tr>
+		</thead>
 
-		<label for="date">Appointment Date:</label>
-		<input type="date" id="date" name="date">
+		<tbody>
+		@for (doctor of doctors(); track doctor.id) {
+			<tr [class.selected-doctor]="selectedDoctor()?.id === doctor.id">
+			<td>{{ doctor.id }}</td>
+			<td>
+				Dr. {{ doctor.firstName }} {{ doctor.lastName }}
+			</td>
+			<td>{{ doctor.specialty }}</td>
+			<td>
+				{{ doctor.gender === 0 ? 'Female' : 'Male' }}
+			</td>
+			<td>{{ doctor.consultationFee }} KWD</td>
+			<td>
+				<button type="button" (click)="selectDoctor(doctor)">   <!-- select button functionality -->
+				Select
+				</button>
+			</td>
+			</tr>
+		} @empty {
+			<tr>
+			<td colspan="6">No doctors available.</td>
+			</tr>
+		}
+		</tbody>
+	</table>
+
+	@if (selectedDoctor()) {
+	<p>
+		<b>Selected Doctor:</b>
+		Dr. {{ selectedDoctor()?.firstName }}
+		{{ selectedDoctor()?.lastName }}
+	</p>
+	}
+
+	<h3>Appointment Date</h3>
+	<label for="date">Select Date:</label>
+	<input type="date" id="date" name="date">
+
 	</section>
-
-	<hr>
 
 	<!-- SECTION 2: Available Time Slots -->
 	<section>

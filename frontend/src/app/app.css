@@ -174,3 +174,12 @@ tr:nth-child(even) {
 .status-message.error h2 {
   color: #dc3545;
 }
+
+.error-message {
+  color: #dc3545;
+  background-color: #fce8e8;
+  border: 1px solid #dc3545;
+  padding: 12px;
+  border-radius: 5px;
+  margin-top: 15px;
+}

@@ -81,7 +81,25 @@
 
 	<h3>Appointment Date</h3>
 	<label for="date">Select Date:</label>
-	<input type="date" id="date" name="date">
+	<input 
+		type="date" 
+		id="date" 
+		#dateInput (change)="selectedDate.set(dateInput.value)"
+	>
+	<!-- Availability Button / trigger for funtion -->
+	<button
+		type="button"
+		[disabled]="!selectedDoctor() || !selectedDate()"
+		(click)="GetAvailability()">
+		Check Availability
+	</button>
+
+	<!-- Error Handling -->
+	@if (availabilityError()) {
+	<p class="error-message">
+		{{ availabilityError() }}
+	</p>
+}
 
 	</section>
 

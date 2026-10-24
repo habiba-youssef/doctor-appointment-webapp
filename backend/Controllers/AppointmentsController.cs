@@ -41,17 +41,6 @@ public class AppointmentsController : ControllerBase
 			appointments = appointments.Where(filter_date =>
 				DateOnly.FromDateTime(filter_date.StartTime) == date.Value);
 		}
-
-		// // Filter by specialtiy
-		// if (!string.IsNullOrWhiteSpace(speciality))
-		// {
-		// 	appointments = appointments.Where(speicality =>_dataStore.Doctors.Any(
-		// 		filter_speciality => filter_speciality.Id == speicality.DoctorId &&
-		// 			string.Equals(filter_speciality.Specialty, speciality,
-		// 				StringComparison.OrdinalIgnoreCase))); // not case sensistive
-		// }
-
-
         // return Ok(_dataStore.Appointments);
 		return Ok(appointments.ToList());
     }

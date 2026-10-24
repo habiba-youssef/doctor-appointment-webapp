@@ -1,2 +1,128 @@
-<h1>Doctors Appointment Applications</h1>
-<p>{{ backendMessage() }}</p>
+<!-- refernce: https://github.com/surajm-3290/student-dashboard-ui-html-css/tree/main -->
+
+<header>
+  <h1>Clinic Appointment Booking</h1>
+  <p>Receptionist Dashboard</p>
+</header>
+
+<main>
+
+  <!-- SECTION 1: Select Doctor and Date -->
+  <section>
+    <h2>Select Doctor and Date</h2>
+
+    <label for="doctor">Doctor:</label>
+    <select id="doctor" name="doctor">
+      <option value="">Select a doctor</option>
+      <option value="1">Dr. Ahmed - Cardiology</option>
+      <option value="2">Dr. Sara - Dermatology</option>
+      <option value="3">Dr. Ali - Pediatrics</option>
+    </select>
+
+    <br><br>
+
+    <label for="date">Appointment Date:</label>
+    <input type="date" id="date" name="date">
+  </section>
+
+  <hr>
+
+  <!-- SECTION 2: Available Time Slots -->
+  <section>
+    <h2>Appointment Time Slots</h2>
+
+    <p>Select an available time slot:</p>
+
+    <button type="button">08:00 - Available</button>
+    <button type="button" disabled>08:30 - Booked</button>
+    <button type="button">09:00 - Available</button>
+    <button type="button">09:30 - Available</button>
+    <button type="button" disabled>10:00 - Booked</button>
+    <button type="button">10:30 - Available</button>
+  </section>
+
+  <hr>
+
+  <!-- SECTION 3: Patient Registration -->
+  <section>
+    <h2>Patient Information</h2>
+
+    <form>
+      <label for="fullName">Full Name:</label>
+      <input
+        type="text"
+        id="fullName"
+        name="fullName"
+        placeholder="Enter full name"
+        required
+      >
+
+      <br><br>
+
+      <label for="phone">Phone Number:</label>
+      <input
+        type="tel"
+        id="phone"
+        name="phone"
+        placeholder="Enter phone number"
+        required
+      >
+
+      <br><br>
+
+      <label for="dob">Date of Birth:</label>
+      <input
+        type="date"
+        id="dob"
+        name="dob"
+        required
+      >
+
+      <br><br>
+
+      <button type="button">Book Appointment</button>
+    </form>
+  </section>
+
+  <hr>
+
+  <!-- SECTION 4: Appointments List -->
+  <section>
+    <h2>Booked Appointments</h2>
+
+    <table border="1">
+      <thead>
+        <tr>
+          <th>Patient</th>
+          <th>Doctor</th>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>Mohammed Ali</td>
+          <td>Dr. Ahmed</td>
+          <td>2026-10-26</td>
+          <td>08:30</td>
+          <td>
+            <button type="button">Cancel</button>
+          </td>
+        </tr>
+
+        <tr>
+          <td>Fatima Hassan</td>
+          <td>Dr. Sara</td>
+          <td>2026-10-27</td>
+          <td>10:00</td>
+          <td>
+            <button type="button">Cancel</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+</main>

@@ -195,7 +195,7 @@
 			<td>{{appointment.startTime.split('T')[0]}}</td>
 			<td>{{appointment.startTime.slice(11, 16)}}</td>
 			<td>
-				<button type="button">Cancel</button>
+				<button type="button" (click)="CancelAppointment(appointment.id)">Cancel</button>
 			</td>
 			</tr>
 

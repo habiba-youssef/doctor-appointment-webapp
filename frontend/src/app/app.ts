@@ -237,7 +237,7 @@ export class App {
     .subscribe({
       next: (response) => {
         console.log('Appointments received:', response);
-        this.appointments.set(response);
+        this.appointments.set(response.filter(appointment => !appointment.isCancelled)); // to hide canceled appointments
       },
 
       error: (error) => {
@@ -260,6 +260,22 @@ export class App {
   return patient
     ? `${patient.firstName} ${patient.lastName}`
     : 'Unknown Patient';
-}
+  }
+
+  CancelAppointment(appointmentId: number) {
+    // Send DELETE request to backend
+    this.http.delete(
+      `http://localhost:5126/appointments/${appointmentId}`
+    ).subscribe({
+
+      // If cancellation is successful
+      next: () => {console.log('Appointment cancelled successfully.');
+        this.GetBookingsList();     // refresh
+        this.GetAvailability();
+      },
+      // Error handling 
+      error: (error) => {console.error('Failed to cancel appointment:', error);}
+    });
+  }
 
 }

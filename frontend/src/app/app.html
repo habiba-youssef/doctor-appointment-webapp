@@ -108,13 +108,12 @@
 		<h2>Appointment Time Slots</h2>
 
 		<p>Select an available time slot:</p>
-
-		<button type="button">08:00 - Available</button>
-		<button type="button" disabled>08:30 - Booked</button>
-		<button type="button">09:00 - Available</button>
-		<button type="button">09:30 - Available</button>
-		<button type="button" disabled>10:00 - Booked</button>
-		<button type="button">10:30 - Available</button>
+		
+		@for (slot of availabilitySlots(); track slot.time) {
+			<button type="button" [disabled]="!slot.available">
+				{{ slot.time }} - {{ slot.available ? 'Available' : 'Unavailable' }}
+			</button>
+		}
 	</section>
 
 	<hr>

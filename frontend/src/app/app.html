@@ -126,13 +126,14 @@
 	<section>
 		<h2>Patient Information</h2>
 
-		<form (submit)="createPatient({
+		<form #patientForm
+			(submit)="BookAppointment({
 			firstName: firstName.value,
 			lastName: lastName.value,
 			phoneNumber: phone.value,
 			dateOfBirth: dob.value,
 			gender: +gender.value
-			}); $event.preventDefault()"
+			}, patientForm); $event.preventDefault()"
 		>
 
 		<label for="FirstName">First Name:</label>
@@ -165,7 +166,7 @@
 
 		<br><br>
 
-		<button type="submit">Register Patient</button>
+		<button type="submit">Book Appointment</button>
 		</form>
 	</section>
 

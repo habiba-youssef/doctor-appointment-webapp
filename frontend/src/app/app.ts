@@ -133,14 +133,72 @@ export class App {
   }
 
   createPatient(patient: Patient) {
-    this.http.post<Patient>('http://localhost:5126/patients', patient)
-    .subscribe({
-      next: (response) => {
-        console.log('Patient created:', response);
+    // this.http.post<Patient>('http://localhost:5126/patients', patient)
+    // .subscribe({
+    //   next: (response) => {
+    //     console.log('Patient created:', response);
+    //   },
+    //   error: (error) => {
+    //     console.error('Failed to create patient:', error);
+    //   }
+    // });
+    return this.http.post<Patient>('http://localhost:5126/patients', patient);  //makes it usable in other functions (BookAppointment())
+  }
+
+  BookAppointment(patient: Patient, form: HTMLFormElement) {
+
+    // Get the selected doctor, date and time
+    const doctor = this.selectedDoctor();
+    const date = this.selectedDate();
+    const time = this.selectedTime();
+
+    // Check that all appointment details are selected
+    if (!doctor || !date || !time) {
+      console.error('Please select a doctor, date and time.');
+      return;
+    }
+
+    // Register the patient first
+    this.createPatient(patient).subscribe({
+      next: (createdPatient) => {   //createdPatient is respose returned from backend
+        // Get the new patient's ID
+        const patientId = createdPatient.id;
+
+        if (patientId == null) {
+          console.error('Patient ID was not returned.');
+          return;
+        }
+
+        // Create the appointment
+        this.http.post(
+          'http://localhost:5126/appointments',
+          {
+            doctorId: doctor.id,
+            patientId: patientId,
+            startTime: `${date}T${time}:00`
+          }
+        ).subscribe({
+
+          next: (response) => {
+            console.log('Appointment booked successfully:', response);
+
+            this.selectedTime.set(null);      // Clear selected time
+            form.reset();                     // Reset patient form
+            this.GetAvailability();           // Refresh availability
+          },
+
+          error: (error) => {
+            console.error('Failed to book appointment:', error);
+          }
+
+        });
+
       },
+
       error: (error) => {
-        console.error('Failed to create patient:', error);
+        console.error('Failed to register patient:', error);
       }
+
     });
   }
 

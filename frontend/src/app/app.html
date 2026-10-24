@@ -188,25 +188,23 @@
 		</thead>
 
 		<tbody>
+		@for (appointment of appointments(); track appointment.id) {
 			<tr>
-			<td>Mohammed Ali</td>
-			<td>Dr. Ahmed</td>
-			<td>2026-10-26</td>
-			<td>08:30</td>
+			<td>{{appointment.patientId}}</td>
+			<td>{{appointment.doctorId}}</td>
+			<td>{{appointment.startTime.split('T')[0]}}</td>
+			<td>{{appointment.startTime.slice(11, 16)}}</td>
 			<td>
 				<button type="button">Cancel</button>
 			</td>
 			</tr>
 
+		} @empty {
 			<tr>
-			<td>Fatima Hassan</td>
-			<td>Dr. Sara</td>
-			<td>2026-10-27</td>
-			<td>10:00</td>
-			<td>
-				<button type="button">Cancel</button>
-			</td>
+			<td colspan="6">No appointments made yet.</td>
 			</tr>
+		}
+
 		</tbody>
 		</table>
 	</section>

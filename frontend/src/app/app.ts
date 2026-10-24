@@ -25,6 +25,14 @@ interface Patient {
   dateOfBirth: string; // not Date because using date-selection calendar, the value you retrieve is a string
 }
 
+interface Appointment {
+  id: number;
+  doctorId: number;
+  patientId: number;
+  startTime: string;
+  isCancelled: boolean;
+}
+
 @Component({
   selector: 'app-root',
   imports: [],
@@ -43,6 +51,7 @@ export class App {
   selectedDate = signal('');  // keeps track of date selected
   selectedTime = signal<string | null>(null);
   availabilityError = signal('');
+  appointments = signal<Appointment[]>([]);   // for appointments display
 
   constructor() {
     this.checkBackend();
@@ -57,6 +66,8 @@ export class App {
       next: () => {
         this.backendStatus.set('online');
         this.GetDoctorList(); // run GetDoctorList() as soon as backend runs
+        this.GetBookingsList();
+
       },
       error: () => {
         this.backendStatus.set('offline');
@@ -90,7 +101,9 @@ export class App {
     // 1. Get the selected doctor and date
     const doctor = this.selectedDoctor();
     const date = this.selectedDate();
-    this.availabilityError.set('');
+    this.availabilityError.set('');   // Clear Error Message
+    this.selectedTime.set(null);      // Clear selected time
+
 
 
     // 2. Make sure both are selected
@@ -182,9 +195,10 @@ export class App {
           next: (response) => {
             console.log('Appointment booked successfully:', response);
 
-            this.selectedTime.set(null);      // Clear selected time
             form.reset();                     // Reset patient form
             this.GetAvailability();           // Refresh availability
+            this.GetBookingsList();           // Refresh booking list
+
           },
 
           error: (error) => {
@@ -199,6 +213,22 @@ export class App {
         console.error('Failed to register patient:', error);
       }
 
+    });
+  }
+
+
+
+  GetBookingsList() {
+    this.http.get<Appointment[]>('http://localhost:5126/appointments')
+    .subscribe({
+      next: (response) => {
+        console.log('Appointments received:', response);
+        this.appointments.set(response);
+      },
+
+      error: (error) => {
+        console.error('Failed to retrieve appointment:', error);
+      }
     });
   }
 

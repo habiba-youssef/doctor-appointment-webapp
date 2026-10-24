@@ -77,7 +77,7 @@ select:focus {
 button {
   background-color: #013e54;
   color: white;
-  padding: 10px 15px;
+  padding: 5px 10px;
   border: none;
   border-radius: 5px;
   cursor: pointer;
@@ -117,7 +117,7 @@ table tbody tr.selected-doctor {
 
 th,
 td {
-  padding: 12px;
+  padding: 5px;
   text-align: left;
   border: 1px solid #ddd;
 }
@@ -182,4 +182,6 @@ tr:nth-child(even) {
   padding: 12px;
   border-radius: 5px;
   margin-top: 15px;
+  text-align: center;
+  font-weight: bold;
 }

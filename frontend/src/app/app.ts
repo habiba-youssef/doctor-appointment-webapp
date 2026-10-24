@@ -16,6 +16,15 @@ interface TimeSlot {
   available: boolean;
 }
 
+interface Patient {
+  id?: number;
+  firstName: string;
+  lastName: string;
+  gender: number;
+  phoneNumber: string;
+  dateOfBirth: string; // not Date because using date-selection calendar, the value you retrieve is a string
+}
+
 @Component({
   selector: 'app-root',
   imports: [],
@@ -32,6 +41,7 @@ export class App {
   availabilitySlots = signal<TimeSlot[]>([]); // to store time slots retrieved
   selectedDoctor = signal<Doctor | null>(null); // keeps track of which doctor is selected
   selectedDate = signal('');  // keeps track of date selected
+  selectedTime = signal<string | null>(null);
   availabilityError = signal('');
 
   constructor() {
@@ -71,8 +81,9 @@ export class App {
 
   selectDoctor(doctor: Doctor) {
     this.selectedDoctor.set(doctor);
+    this.selectedTime.set(null);
+    this.availabilitySlots.set([]);
   }
-
 
   GetAvailability() {
 
@@ -110,6 +121,26 @@ export class App {
         console.error('Error:', error);
       }
 
+    });
+  }
+
+  selectTime(slot: TimeSlot) {
+    if (!slot.available) {
+      return;
+    }
+
+    this.selectedTime.set(slot.time);
+  }
+
+  createPatient(patient: Patient) {
+    this.http.post<Patient>('http://localhost:5126/patients', patient)
+    .subscribe({
+      next: (response) => {
+        console.log('Patient created:', response);
+      },
+      error: (error) => {
+        console.error('Failed to create patient:', error);
+      }
     });
   }
 

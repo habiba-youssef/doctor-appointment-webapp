@@ -110,10 +110,14 @@
 		<p>Select an available time slot:</p>
 		
 		@for (slot of availabilitySlots(); track slot.time) {
-			<button type="button" [disabled]="!slot.available">
+			<button type="button" [disabled]="!slot.available" (click)="selectTime(slot)">
 				{{ slot.time }} - {{ slot.available ? 'Available' : 'Unavailable' }}
 			</button>
 		}
+		@if (selectedTime()) {
+		<p><strong>Selected Time:</strong> {{ selectedTime() }}</p>
+		}
+
 	</section>
 
 	<hr>
@@ -122,26 +126,32 @@
 	<section>
 		<h2>Patient Information</h2>
 
-		<form>
-		<label for="fullName">Full Name:</label>
-		<input
-			type="text"
-			id="fullName"
-			name="fullName"
-			placeholder="Enter full name"
-			required
+		<form (submit)="createPatient({
+			firstName: firstName.value,
+			lastName: lastName.value,
+			phoneNumber: phone.value,
+			dateOfBirth: dob.value,
+			gender: +gender.value
+			}); $event.preventDefault()"
 		>
 
+		<label for="FirstName">First Name:</label>
+		<input type="text" id="firstName" #firstName placeholder="Enter First Name" required>
+		<br><br>
+
+		<label for="LastName">Surname:</label>
+		<input type="text" id="lastName" #lastName placeholder="Enter Last Name" required>
 		<br><br>
 
 		<label for="phone">Phone Number:</label>
-		<input
-			type="tel"
-			id="phone"
-			name="phone"
-			placeholder="Enter phone number"
-			required
-		>
+		<input type="tel" id="phone" #phone placeholder="Enter phone number" required >
+		<br><br>
+
+		<label for="Gender">Gender:</label>
+		<select id="gender" #gender required>
+			<option value="1">Male</option>
+			<option value="0">Female</option>
+		</select>
 
 		<br><br>
 
@@ -149,13 +159,13 @@
 		<input
 			type="date"
 			id="dob"
-			name="dob"
+			#dob
 			required
 		>
 
 		<br><br>
 
-		<button type="button">Book Appointment</button>
+		<button type="submit">Register Patient</button>
 		</form>
 	</section>
 

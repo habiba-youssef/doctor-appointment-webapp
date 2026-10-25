@@ -184,6 +184,25 @@ export class App {
       return;
     }
 
+    // Send confirmation message
+    const confirmed = confirm(
+      'Appointment Information - Please check details \n\n'+
+      'Patient Info: \n' +
+      `Patient Full Name: ${patient.firstName} ${patient.lastName}\n` +
+      `Patient DOB: ${patient.dateOfBirth}\n` +
+      `Patient Phone Number: +965 ${patient.phoneNumber}\n\n` +
+
+      `Doctor: Dr. ${doctor.firstName} ${doctor.lastName}  ---  ${doctor.specialty}\n` +
+      `Date: ${date}\n` +
+      `Time: ${time}`
+    );
+
+    // If the user clicks Cancel, stop the function
+    if (!confirmed) {
+      return;
+    }
+
+
     // Register the patient first
     this.createPatient(patient).subscribe({
       next: (createdPatient) => {   //createdPatient is respose returned from backend
@@ -208,7 +227,7 @@ export class App {
           next: (response) => {
             console.log('Appointment booked successfully:', response);
 
-            // creates popup window
+            // creates confirmtion popup window
             alert(
               `Appointment booked successfully!\n\n` +
               `Patient: ${patient.firstName} ${patient.lastName}\n` +
@@ -236,8 +255,6 @@ export class App {
     }
     });
   }
-
-
 
   GetBookingsList() {
     this.http.get<Appointment[]>('http://localhost:5126/appointments')
@@ -270,6 +287,16 @@ export class App {
   }
 
   CancelAppointment(appointmentId: number) {
+    // Send confirmation message
+    const confirmed = confirm(
+      'Are you sure you want to cancel this appointment?'
+    );
+
+    // If the user clicks Cancel, stop the function
+    if (!confirmed) {
+      return;
+    }
+
     // Send DELETE request to backend
     this.http.delete(
       `http://localhost:5126/appointments/${appointmentId}`

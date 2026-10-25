@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http'; // Allows Angular to send HTTP requests to your backend API.
-
+import { firstValueFrom } from 'rxjs';    // For Step-by-Step Logic when Booking
 // tells frontend what object structure looks like
 interface Doctor {
   id: number;
@@ -169,91 +169,90 @@ export class App {
     return this.http.post<Patient>('http://localhost:5126/patients', patient);  //makes it usable in other functions (BookAppointment())
   }
 
-  BookAppointment(patient: Patient, form: HTMLFormElement) {
-    this.patientError.set('');  // Clear Error Message
+  // Updated Boooking Logic to check availability before registering patient
+  async BookAppointment(patient: Patient, form: HTMLFormElement) {
+    this.patientError.set('');
 
-    // Get the selected doctor, date and time
     const doctor = this.selectedDoctor();
     const date = this.selectedDate();
     const time = this.selectedTime();
 
-    // Check that all appointment details are selected
     if (!doctor || !date || !time) {
-      // console.error('Please select a doctor, date and time.');
       this.patientError.set('Please select a doctor, date and time.');
       return;
     }
 
     // Send confirmation message
     const confirmed = confirm(
-      'Appointment Information - Please check details \n\n'+
+      'Appointment Information - Please check details \n\n' +
       'Patient Info: \n' +
       `Patient Full Name: ${patient.firstName} ${patient.lastName}\n` +
       `Patient DOB: ${patient.dateOfBirth}\n` +
       `Patient Phone Number: +965 ${patient.phoneNumber}\n\n` +
 
-      `Doctor: Dr. ${doctor.firstName} ${doctor.lastName}  ---  ${doctor.specialty}\n` +
+      `Doctor: Dr. ${doctor.firstName} ${doctor.lastName} --- ${doctor.specialty}\n` +
       `Date: ${date}\n` +
       `Time: ${time}`
     );
 
-    // If the user clicks Cancel, stop the function
-    if (!confirmed) {
-      return;
-    }
+    if (!confirmed) return;
 
-
-    // Register the patient first
-    this.createPatient(patient).subscribe({
-      next: (createdPatient) => {   //createdPatient is respose returned from backend
-        // Get the new patient's ID
-        const patientId = createdPatient.id;
-
-        if (patientId == null) {
-          console.error('Patient ID was not returned.');
-          return;
-        }
-
-        // Create the appointment
-        this.http.post(
-          'http://localhost:5126/appointments',
-          {
-            doctorId: doctor.id,
-            patientId: patientId,
-            startTime: `${date}T${time}:00`
-          }
-        ).subscribe({
-
-          next: (response) => {
-            console.log('Appointment booked successfully:', response);
-
-            // creates confirmtion popup window
-            alert(
-              `Appointment booked successfully!\n\n` +
-              `Patient: ${patient.firstName} ${patient.lastName}\n` +
-              `Doctor: Dr. ${doctor.firstName} ${doctor.lastName}\n` +
-              `Date: ${date}\n` +
-              `Time: ${time}`
-            );
-
-            form.reset();                     // Reset patient form
-            this.GetAvailability();           // Refresh availability
-            this.GetBookingsList();           // Refresh booking list
-            this.GetPatientsList();
-
-          },
-
-        });
-
-      },
-
-    error: (error) => {
-      this.patientError.set(
-        typeof error.error === 'string' ? error.error : error.error?.title || 'Failed to register patient.'
+    try {
+      // STEP 1: Check availability
+      const slots = await firstValueFrom(
+        this.http.get<TimeSlot[]>(
+          `http://localhost:5126/appointments/availability?doctorId=${doctor.id}&date=${date}`
+        )
       );
-      // console.error('Failed to register patient:', error);
+
+      if (!slots.some(s => s.time === time && s.available)) {
+        this.patientError.set('This time slot is unavailable.');
+        this.GetAvailability();
+        return;
+      }
+
+      // STEP 2: Register patient
+      const createdPatient = await firstValueFrom(
+        this.createPatient(patient)
+      );
+
+      if (createdPatient.id == null) {
+        throw new Error('Patient ID was not returned.');
+      }
+
+      // STEP 3: Book appointment
+      await firstValueFrom(
+        this.http.post('http://localhost:5126/appointments', {
+          doctorId: doctor.id,
+          patientId: createdPatient.id,
+          startTime: `${date}T${time}:00`
+        })
+      );
+
+      // STEP 4: Confirm booking and refresh
+      alert(
+        `Appointment booked successfully!\n\n` +
+        `Patient: ${patient.firstName} ${patient.lastName}\n` +
+        `Doctor: Dr. ${doctor.firstName} ${doctor.lastName}\n` +
+        `Date: ${date}\nTime: ${time}`
+      );
+
+      form.reset();
+      this.selectedTime.set(null);
+      this.GetAvailability();
+      this.GetBookingsList();
+      this.GetPatientsList();
+
+    } catch (error: any) {
+      // Handle errors from any step
+      this.patientError.set(
+        typeof error.error === 'string'
+          ? error.error
+          : error.error?.title || error.message || 'Booking failed.'
+      );
+
+      this.GetAvailability();
     }
-    });
   }
 
   GetBookingsList() {

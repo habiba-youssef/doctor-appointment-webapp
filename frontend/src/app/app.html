@@ -99,7 +99,7 @@
 	<p class="error-message">
 		{{ availabilityError() }}
 	</p>
-}
+	}
 
 	</section>
 
@@ -136,11 +136,11 @@
 			}, patientForm); $event.preventDefault()"
 		>
 
-		<label for="FirstName">First Name:</label>
+		<label for="firstName">First Name:</label>
 		<input type="text" id="firstName" #firstName placeholder="Enter First Name" required>
 		<br><br>
 
-		<label for="LastName">Surname:</label>
+		<label for="lastName">Surname:</label>
 		<input type="text" id="lastName" #lastName placeholder="Enter Last Name" required>
 		<br><br>
 
@@ -148,7 +148,7 @@
 		<input type="tel" id="phone" #phone placeholder="Enter phone number" required >
 		<br><br>
 
-		<label for="Gender">Gender:</label>
+		<label for="gender">Gender:</label>
 		<select id="gender" #gender required>
 			<option value="1">Male</option>
 			<option value="0">Female</option>
@@ -167,7 +167,16 @@
 		<br><br>
 
 		<button type="submit">Book Appointment</button>
-		</form>
+
+		<!-- Error Handling -->
+		@if (patientError()) {
+		<p class="error-message">
+			{{ patientError() }}
+		</p>
+		}
+		
+	</form>
+
 	</section>
 
 	<hr>

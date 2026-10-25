@@ -52,6 +52,7 @@ export class App {
   selectedDate = signal('');  // keeps track of date selected
   selectedTime = signal<string | null>(null);
   availabilityError = signal('');
+  patientError = signal('');
   appointments = signal<Appointment[]>([]);   // for appointments display
 
   constructor() {
@@ -102,7 +103,6 @@ export class App {
       });
   }
 
-
   selectDoctor(doctor: Doctor) {
     this.selectedDoctor.set(doctor);
     this.selectedTime.set(null);
@@ -117,8 +117,6 @@ export class App {
     this.availabilityError.set('');   // Clear Error Message
     this.selectedTime.set(null);      // Clear selected time
 
-
-
     // 2. Make sure both are selected
     if (!doctor || !date) {
       return;
@@ -132,10 +130,10 @@ export class App {
       // 4. Store the returned time slots
       next: (response) => {
         this.availabilitySlots.set(response);
-        console.log('Availability:', response);
+        // console.log('Availability:', response);
       },
 
-      // 5. Handle errors
+      // errors handling
       error: (error) => {
         this.availabilitySlots.set([]);
 
@@ -144,7 +142,7 @@ export class App {
             ? error.error
             : error.error?.title || 'Unable to retrieve availability.'
         );
-        console.error('Error:', error);
+        // console.error('Error:', error);
       }
 
     });
@@ -172,6 +170,7 @@ export class App {
   }
 
   BookAppointment(patient: Patient, form: HTMLFormElement) {
+    this.patientError.set('');  // Clear Error Message
 
     // Get the selected doctor, date and time
     const doctor = this.selectedDoctor();
@@ -180,7 +179,8 @@ export class App {
 
     // Check that all appointment details are selected
     if (!doctor || !date || !time) {
-      console.error('Please select a doctor, date and time.');
+      // console.error('Please select a doctor, date and time.');
+      this.patientError.set('Please select a doctor, date and time.');
       return;
     }
 
@@ -208,6 +208,15 @@ export class App {
           next: (response) => {
             console.log('Appointment booked successfully:', response);
 
+            // creates popup window
+            alert(
+              `Appointment booked successfully!\n\n` +
+              `Patient: ${patient.firstName} ${patient.lastName}\n` +
+              `Doctor: Dr. ${doctor.firstName} ${doctor.lastName}\n` +
+              `Date: ${date}\n` +
+              `Time: ${time}`
+            );
+
             form.reset();                     // Reset patient form
             this.GetAvailability();           // Refresh availability
             this.GetBookingsList();           // Refresh booking list
@@ -215,18 +224,16 @@ export class App {
 
           },
 
-          error: (error) => {
-            console.error('Failed to book appointment:', error);
-          }
-
         });
 
       },
 
-      error: (error) => {
-        console.error('Failed to register patient:', error);
-      }
-
+    error: (error) => {
+      this.patientError.set(
+        typeof error.error === 'string' ? error.error : error.error?.title || 'Failed to register patient.'
+      );
+      // console.error('Failed to register patient:', error);
+    }
     });
   }
 
@@ -236,7 +243,7 @@ export class App {
     this.http.get<Appointment[]>('http://localhost:5126/appointments')
     .subscribe({
       next: (response) => {
-        console.log('Appointments received:', response);
+        // console.log('Appointments received:', response);
         this.appointments.set(response.filter(appointment => !appointment.isCancelled)); // to hide canceled appointments
       },
 

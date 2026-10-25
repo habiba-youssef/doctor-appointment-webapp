@@ -37,20 +37,59 @@ public class PatientsController : ControllerBase
 	// }
 
 	// added validation checks --- edit later to make specific checks!!
+// 	[HttpPost]
+// 	public IActionResult CreatePatient([FromBody] Patient patient)
+// 	{
+// 		// Check if any patient information is invalid
+// 		if (string.IsNullOrWhiteSpace(patient.FirstName) ||
+// 			string.IsNullOrWhiteSpace(patient.LastName) ||
+// 			string.IsNullOrWhiteSpace(patient.PhoneNumber) ||
+// 			patient.PhoneNumber.Length != 8 || 	// ensures 8 digits
+// 			!patient.PhoneNumber.All(char.IsDigit) || 	// checks that all entered characters are ints
+// 			patient.DateOfBirth == default ||
+// 			patient.DateOfBirth > DateOnly.FromDateTime(DateTime.Today) ||
+// 			!Enum.IsDefined(patient.Gender))
+// 		{
+// 			return BadRequest("Error in patient data entered; check info...");
+// 		}
+// 		else
+// 		{
+// 			// Generate ID and add patient
+// 			patient.Id = _dataStore.Patients.Count + 1;
+// 			_dataStore.Patients.Add(patient);
+
+// 			return StatusCode(201, patient);
+// 		}
+// 	}
+// }
+
 	[HttpPost]
 	public IActionResult CreatePatient([FromBody] Patient patient)
 	{
 		// Check if any patient information is invalid
-		if (string.IsNullOrWhiteSpace(patient.FirstName) ||
-			string.IsNullOrWhiteSpace(patient.LastName) ||
-			string.IsNullOrWhiteSpace(patient.PhoneNumber) ||
-			patient.PhoneNumber.Length != 8 || 	// ensures 8 digits
-			!patient.PhoneNumber.All(char.IsDigit) || 	// checks that all entered characters are ints
-			patient.DateOfBirth == default ||
-			patient.DateOfBirth > DateOnly.FromDateTime(DateTime.Today) ||
-			!Enum.IsDefined(patient.Gender))
-		{
-			return BadRequest("Error in patient data entered; check info...");
+		if (string.IsNullOrWhiteSpace(patient.FirstName)){
+			return BadRequest("First Name is Required");
+		}
+		else if (string.IsNullOrWhiteSpace(patient.LastName)){
+			return BadRequest("Surname is Required");
+		}
+		else if (string.IsNullOrWhiteSpace(patient.PhoneNumber)){
+			return BadRequest("Phone Number is Required");
+		}
+		else if (patient.PhoneNumber.Length != 8){
+			return BadRequest("Phone number needs to be 8 characters long");
+		}
+		else if (!patient.PhoneNumber.All(char.IsDigit)){
+			return BadRequest("Invalid Phone Number");
+		}
+		else if (patient.DateOfBirth == default){
+			return BadRequest("Date of Birth is Required");
+		}
+		else if (patient.DateOfBirth > DateOnly.FromDateTime(DateTime.Today)){
+			return BadRequest("Date of Birth needs to be Before Today");
+		}
+		else if (!Enum.IsDefined(patient.Gender)){
+			return BadRequest("Gender Selection is Required");
 		}
 		else
 		{
@@ -61,5 +100,22 @@ public class PatientsController : ControllerBase
 			return StatusCode(201, patient);
 		}
 	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 }

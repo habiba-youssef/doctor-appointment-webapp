@@ -12,6 +12,9 @@ public class DataStore
     public List<Patient> Patients { get; } = new();
     public List<Appointment> Appointments { get; } = new();
 
+    // Additional constructor used by your unit tests to supply sample doctors directly.
+    public DataStore(IEnumerable<Doctor> doctors) { Doctors = doctors.ToList();}
+
 	// constructor that runs automatically when an object of a class is created, collects doctor data instantly from csv file
     public DataStore(IWebHostEnvironment environment)
     {

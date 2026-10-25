@@ -4,7 +4,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
-builder.Services.AddSingleton<DataStore>(); // run data storage to upload data
+// builder.Services.AddSingleton<DataStore>(); // run data storage to upload data
+builder.Services.AddSingleton<DataStore>(serviceProvider =>
+    new DataStore(serviceProvider.GetRequiredService<IWebHostEnvironment>()));      // specifies constructor
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 

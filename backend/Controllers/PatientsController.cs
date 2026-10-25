@@ -51,7 +51,7 @@ public class PatientsController : ControllerBase
 		}
 		else if (patient.DateOfBirth < DateOnly.FromDateTime(DateTime.Today).AddYears(-110)){
     		return BadRequest("Patient age cannot exceed 110 years.");
-}
+		}
 		else if (!Enum.IsDefined(patient.Gender)){
 			return BadRequest("Gender Selection is Required");
 		}

@@ -1,37 +1,14 @@
 import { Component, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http'; // Allows Angular to send HTTP requests to your backend API.
 import { firstValueFrom } from 'rxjs';    // For Step-by-Step Logic when Booking
+
+const API_BASE_URL = 'http://localhost:5126';
+
 // tells frontend what object structure looks like
-interface Doctor {
-  id: number;
-  firstName: string;
-  lastName: string;
-  specialty: string;
-  gender: number;
-  consultationFee: number;
-}
-
-interface TimeSlot {
-  time: string;
-  available: boolean;
-}
-
-interface Patient {
-  id?: number;
-  firstName: string;
-  lastName: string;
-  gender: number;
-  phoneNumber: string;
-  dateOfBirth: string; // not Date because using date-selection calendar, the value you retrieve is a string
-}
-
-interface Appointment {
-  id: number;
-  doctorId: number;
-  patientId: number;
-  startTime: string;
-  isCancelled: boolean;
-}
+import { Doctor } from './models';
+import { Patient } from './models';
+import { Appointment } from './models';
+import { TimeSlot } from './models';
 
 @Component({
   selector: 'app-root',
@@ -62,7 +39,7 @@ export class App {
   checkBackend() {
     this.backendStatus.set('checking');
 
-    this.http.get('http://localhost:5126/status', {
+    this.http.get(`${API_BASE_URL}/status`, { 
       responseType: 'text'
     }).subscribe({
       next: () => {
@@ -79,7 +56,7 @@ export class App {
   }
 
   GetDoctorList() {
-    this.http.get<Doctor[]>('http://localhost:5126/doctors')
+    this.http.get<Doctor[]>(`${API_BASE_URL}/doctors`)
     .subscribe({
       next: (response) => {this.doctors.set(
         response.sort((a, b) => a.specialty.localeCompare(b.specialty)) // sorting by speciality and alphabetically
@@ -94,7 +71,7 @@ export class App {
   }
 
   GetPatientsList() {
-    this.http.get<Patient[]>('http://localhost:5126/patients')
+    this.http.get<Patient[]>(`${API_BASE_URL}/patients`)
       .subscribe({
         next: (response) => {this.patients.set(response);},
         error: (error) => {
@@ -124,7 +101,7 @@ export class App {
 
     // 3. Send request to backend
     this.http.get<TimeSlot[]>(
-      `http://localhost:5126/appointments/availability?doctorId=${doctor.id}&date=${date}`
+      `${API_BASE_URL}/appointments/availability?doctorId=${doctor.id}&date=${date}`
     ).subscribe({
 
       // 4. Store the returned time slots
@@ -157,7 +134,7 @@ export class App {
   }
 
   createPatient(patient: Patient) {
-    // this.http.post<Patient>('http://localhost:5126/patients', patient)
+    // this.http.post<Patient>(`${API_BASE_URL}/patients`, patient)
     // .subscribe({
     //   next: (response) => {
     //     console.log('Patient created:', response);
@@ -166,7 +143,7 @@ export class App {
     //     console.error('Failed to create patient:', error);
     //   }
     // });
-    return this.http.post<Patient>('http://localhost:5126/patients', patient);  //makes it usable in other functions (BookAppointment())
+    return this.http.post<Patient>(`${API_BASE_URL}/patients`, patient);  //makes it usable in other functions (BookAppointment())
   }
 
   // Updated Boooking Logic to check availability before registering patient
@@ -201,7 +178,7 @@ export class App {
       // STEP 1: Check availability
       const slots = await firstValueFrom(
         this.http.get<TimeSlot[]>(
-          `http://localhost:5126/appointments/availability?doctorId=${doctor.id}&date=${date}`
+          `${API_BASE_URL}/appointments/availability?doctorId=${doctor.id}&date=${date}`
         )
       );
 
@@ -222,7 +199,7 @@ export class App {
 
       // STEP 3: Book appointment
       await firstValueFrom(
-        this.http.post('http://localhost:5126/appointments', {
+        this.http.post(`${API_BASE_URL}/appointments`, {
           doctorId: doctor.id,
           patientId: createdPatient.id,
           startTime: `${date}T${time}:00`
@@ -256,7 +233,7 @@ export class App {
   }
 
   GetBookingsList() {
-    this.http.get<Appointment[]>('http://localhost:5126/appointments')
+    this.http.get<Appointment[]>(`${API_BASE_URL}/appointments`)
     .subscribe({
       next: (response) => {
         // console.log('Appointments received:', response);
@@ -298,7 +275,7 @@ export class App {
 
     // Send DELETE request to backend
     this.http.delete(
-      `http://localhost:5126/appointments/${appointmentId}`
+      `${API_BASE_URL}/appointments/${appointmentId}`
     ).subscribe({
 
       // If cancellation is successful

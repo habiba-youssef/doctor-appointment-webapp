@@ -74,12 +74,12 @@ public class Clinic101Tests
                 r is ObjectResult response &&
                 response.StatusCode == 409);
 
-            Assert.True(successful == 1 && conflicts == 9,
+            Assert.True(successful == 1 && conflicts == 1,
                 $"Attempt {attempt + 1}: " +
                 $"Expected 1 success and 1 conflict, " +
                 $"but got {successful} successes and {conflicts} conflicts.");
 
-            Assert.Single(store.Appointments.Where(a => !a.IsCancelled));
+            Assert.Single(store.Appointments, a => !a.IsCancelled);
         }
     }
 }

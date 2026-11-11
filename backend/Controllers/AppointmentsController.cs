@@ -87,20 +87,25 @@ public class AppointmentsController : ControllerBase
 			return BadRequest("Cannot book an appointment in the past.");
 		}
 		// 6. Prevent double booking Doctor
-		if (_dataStore.Appointments.Any(i =>
-			i.DoctorId == appointment.DoctorId &&
-			i.StartTime == appointment.StartTime &&
-			!i.IsCancelled))
-		{
-			return Conflict("This doctor already has an appointment at this time."); // Conflict because appointment info is valid, but the requested slot is already occupied
-		}
+		lock (_dataStore.BookingLock)
+			{
+				// Check whether the doctor already has an appointment
+				if (_dataStore.Appointments.Any(i =>
+					i.DoctorId == appointment.DoctorId &&
+					i.StartTime == appointment.StartTime &&
+					!i.IsCancelled))
+				{
+					return Conflict("This doctor already has an appointment at this time.");
+				}
 
-		// Create appointment if all validations pass
-		appointment.Id = _dataStore.Appointments.Count + 1;
-		appointment.IsCancelled = false;
-		_dataStore.Appointments.Add(appointment);
+				// Create the appointment
+				appointment.Id = _dataStore.Appointments.Count + 1;
+				appointment.IsCancelled = false;
 
-		return StatusCode(201, appointment);
+				_dataStore.Appointments.Add(appointment);
+
+				return StatusCode(201, appointment);
+			}
 	}
 
 

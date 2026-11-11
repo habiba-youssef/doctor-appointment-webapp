@@ -12,10 +12,14 @@ namespace DoctorsAppointment.Api.Controllers;
 public class AppointmentsController : ControllerBase
 {
     private readonly DataStore _dataStore;
+	private readonly TimeProvider _clock;
+
     // Constructor
-    public AppointmentsController(DataStore dataStore)
+    public AppointmentsController(DataStore dataStore, TimeProvider? clock = null)
     {
         _dataStore = dataStore;
+		_clock = clock ?? TimeProvider.System;	// to unify timezone
+
     }
 
     // GET request to retrieve appointments
@@ -82,7 +86,7 @@ public class AppointmentsController : ControllerBase
 		}
 
 		// 5. Reject appointments in the past
-		if (appointment.StartTime <= DateTime.Now)
+		if (appointment.StartTime <= _clock.GetLocalNow().DateTime)
 		{
 			return BadRequest("Cannot book an appointment in the past.");
 		}
@@ -163,7 +167,7 @@ public class AppointmentsController : ControllerBase
 
 		// 4. Generate the 16 possible time slots
 		var slots = new List<object>();
-		var now = DateTime.Now;
+		var now = _clock.GetLocalNow().DateTime;
 
 		for (int i = 0; i < 16; i++)
 		{

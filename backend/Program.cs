@@ -4,6 +4,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
+builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
 // builder.Services.AddSingleton<DataStore>(); // run data storage to upload data
 builder.Services.AddSingleton<DataStore>(serviceProvider =>
     new DataStore(serviceProvider.GetRequiredService<IWebHostEnvironment>()));      // specifies constructor

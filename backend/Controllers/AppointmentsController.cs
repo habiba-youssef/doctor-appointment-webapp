@@ -13,6 +13,22 @@ public class AppointmentsController : ControllerBase
 {
     private readonly DataStore _dataStore;
 	private readonly TimeProvider _clock;
+	private static readonly TimeZoneInfo KuwaitZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Kuwait");
+
+	// method that returns kuwait timing
+	private DateTime GetKuwaitNow()
+	{
+		// 1. Get the current UTC time
+		var utcNow = _clock.GetUtcNow();
+
+		// 2. Convert UTC to Kuwait time
+		var kuwaitNow = TimeZoneInfo.ConvertTime(
+			utcNow, KuwaitZone
+		);
+
+		// 3. Return the Kuwait local date and time
+		return kuwaitNow.DateTime;
+	}
 
     // Constructor
     public AppointmentsController(DataStore dataStore, TimeProvider? clock = null)
@@ -86,7 +102,7 @@ public class AppointmentsController : ControllerBase
 		}
 
 		// 5. Reject appointments in the past
-		if (appointment.StartTime <= _clock.GetLocalNow().DateTime)
+		if (appointment.StartTime <= GetKuwaitNow())
 		{
 			return BadRequest("Cannot book an appointment in the past.");
 		}
@@ -167,7 +183,7 @@ public class AppointmentsController : ControllerBase
 
 		// 4. Generate the 16 possible time slots
 		var slots = new List<object>();
-		var now = _clock.GetLocalNow().DateTime;
+		var now = GetKuwaitNow();
 
 		for (int i = 0; i < 16; i++)
 		{

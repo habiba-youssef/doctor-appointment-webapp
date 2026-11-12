@@ -130,6 +130,7 @@
 			(submit)="BookAppointment({
 			firstName: firstName.value,
 			lastName: lastName.value,
+			civilId: civilId.value,
 			phoneNumber: phone.value,
 			dateOfBirth: dob.value,
 			gender: +gender.value
@@ -142,6 +143,10 @@
 
 		<label for="lastName">Surname:</label>
 		<input type="text" id="lastName" #lastName placeholder="Enter Last Name" required>
+		<br><br>
+
+		<label for="civilId">Civil ID:</label>
+		<input type="text" id="civilId" #civilId placeholder="Civil ID (12 Digits)" required>
 		<br><br>
 
 		<label for="phone">Phone Number:</label>
@@ -186,6 +191,13 @@
 	<section>
 		<h2>Booked Appointments</h2>
 
+		<!-- Display cancellation errors to the receptionist -->
+		@if (cancellationError()) {
+			<p class="error-message" role="alert">
+				{{ cancellationError() }}
+			</p>
+		}
+		
 		<table border="1">
 		<thead>
 			<tr>

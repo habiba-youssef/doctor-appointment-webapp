@@ -30,6 +30,7 @@ export class App {
   selectedTime = signal<string | null>(null);
   availabilityError = signal('');
   patientError = signal('');
+  cancellationError = signal('');   // clinic-105 fix
   appointments = signal<Appointment[]>([]);   // for appointments display
 
   constructor() {
@@ -263,6 +264,9 @@ export class App {
   }
 
   CancelAppointment(appointmentId: number) {
+    // Clear any previous cancellation errors
+    this.cancellationError.set('');
+
     // Send confirmation message
     const confirmed = confirm(
       'Are you sure you want to cancel this appointment?'
@@ -284,7 +288,19 @@ export class App {
         this.GetAvailability();
       },
       // Error handling 
-      error: (error) => {console.error('Failed to cancel appointment:', error);}
+      error: (error) => {
+        // Store the backend error so it can be displayed in the UI
+        this.cancellationError.set(
+          typeof error.error === 'string'
+            ? error.error
+            : error.error?.detail ||
+              error.error?.title ||
+              'Failed to cancel appointment.'
+        );
+
+        // Refresh the list to show the actual appointment state
+        this.GetBookingsList();
+      }
     });
   }
 

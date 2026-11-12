@@ -56,6 +56,15 @@ public class PatientsController : ControllerBase
 		else if (!Enum.IsDefined(patient.Gender) || patient.Gender == GenderOption.NotSpecified){
 			return BadRequest("Gender Selection is Required");
 		}
+		// Clinic-104 Bug Fix
+		else if (string.IsNullOrWhiteSpace(patient.CivilId) || patient.CivilId.Length != 12 || !patient.CivilId.All(c => c >= '0' && c <= '9'))
+		{
+			return BadRequest("Civil ID must contain exactly 12 digits.");
+		}
+		else if (_dataStore.Patients.Any(p => p.CivilId == patient.CivilId))
+		{
+			return Conflict("A patient with this Civil ID already exists.");
+		}
 		else
 		{
 			// Generate ID and add patient

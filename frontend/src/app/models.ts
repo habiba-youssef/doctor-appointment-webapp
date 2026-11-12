@@ -10,6 +10,7 @@ export interface Doctor {
 
 export interface Patient {
   id?: number;
+  civilId: string;
   firstName: string;
   lastName: string;
   gender: number;

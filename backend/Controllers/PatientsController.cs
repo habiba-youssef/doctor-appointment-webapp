@@ -55,6 +55,10 @@ public class PatientsController : ControllerBase
 		else if (!Enum.IsDefined(patient.Gender)){
 			return BadRequest("Gender Selection is Required");
 		}
+		// Clinic-103 Bug Fix
+		else if (patient.Gender == GenderOption.NotSpecified){
+			return BadRequest("Gender Selection is Required");
+		}
 		else
 		{
 			// Generate ID and add patient

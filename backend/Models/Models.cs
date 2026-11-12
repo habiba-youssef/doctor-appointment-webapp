@@ -2,6 +2,7 @@ namespace DoctorsAppointment.Api.Models;
 
 public enum GenderOption
 {
+    NotSpecified,
     Female,
     Male
 }

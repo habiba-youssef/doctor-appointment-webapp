@@ -54,7 +54,7 @@
 			</td>
 			<td>{{ doctor.specialty }}</td>
 			<td>
-				{{ doctor.gender === 0 ? 'Female' : 'Male' }}
+				{{ doctor.gender === 1 ? 'Female' : 'Male' }}
 			</td>
 			<td>{{ doctor.consultationFee }} KWD</td>
 			<td>
@@ -150,6 +150,7 @@
 
 		<label for="gender">Gender:</label>
 		<select id="gender" #gender required>
+			<option value="" disabled selected>Select Gender</option> 	// Clinic-103 fix frontend update
 			<option value="1">Male</option>
 			<option value="0">Female</option>
 		</select>

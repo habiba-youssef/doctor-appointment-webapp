@@ -1,5 +1,8 @@
 using DoctorsAppointment.Api.Data;
 using Microsoft.EntityFrameworkCore;
+using CsvHelper;
+using System.Globalization;
+using DoctorsAppointment.Api.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<ClinicDbContext>(options =>
@@ -7,7 +10,6 @@ builder.Services.AddDbContext<ClinicDbContext>(options =>
         builder.Configuration.GetConnectionString("ClinicDb")
     )
 );
-
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -32,6 +34,37 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    // Get our database context
+    var db = scope.ServiceProvider
+        .GetRequiredService<ClinicDbContext>();
+
+    // Only insert doctors if the table is empty
+    if (!db.Doctors.Any())
+    {
+        // Find the existing CSV file
+        var path = Path.Combine(
+            app.Environment.ContentRootPath,
+            "Data",
+            "doctors.csv"
+        );
+
+        // Read doctors from CSV
+        using var reader = new StreamReader(path);
+        using var csv = new CsvReader(
+            reader,
+            CultureInfo.InvariantCulture
+        );
+
+        var doctors = csv.GetRecords<Doctor>().ToList();
+
+        // Save doctors to PostgreSQL
+        db.Doctors.AddRange(doctors);
+        db.SaveChanges();
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

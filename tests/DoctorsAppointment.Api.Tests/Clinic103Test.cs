@@ -27,6 +27,7 @@ public class Clinic103Tests
         {
             FirstName = "Test",
             LastName = "Patient",
+            CivilId = "000000000001", // Update after CLINIC-104
             PhoneNumber = "55550000",
             DateOfBirth = new DateOnly(2000, 1, 1)
             // Gender intentionally missing
@@ -34,11 +35,14 @@ public class Clinic103Tests
 
         // ACT: Attempt to register the patient
         var result = controller.CreatePatient(patient);
+        
+        // ASSERT: Registration should fail because gender is missing
+        var response = Assert.IsType<BadRequestObjectResult>(result);
 
-        // ASSERT: Registration should be rejected
-        Assert.IsType<BadRequestObjectResult>(result);
+        // Verify the exact reason for rejection
+        Assert.Equal("Gender Selection is Required", response.Value);
 
-        // Verify no patient was saved
+        // Verify no patient was registered
         Assert.Empty(store.Patients);
     }
 }

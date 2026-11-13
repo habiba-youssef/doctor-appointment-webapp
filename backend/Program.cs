@@ -1,6 +1,13 @@
 using DoctorsAppointment.Api.Data;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddDbContext<ClinicDbContext>(options =>
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("ClinicDb")
+    )
+);
+
 
 // Add services to the container.
 builder.Services.AddControllers();

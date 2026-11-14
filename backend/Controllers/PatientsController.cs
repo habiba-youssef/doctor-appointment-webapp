@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using DoctorsAppointment.Api.Data;
 using DoctorsAppointment.Api.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace DoctorsAppointment.Api.Controllers;
 
@@ -8,25 +9,37 @@ namespace DoctorsAppointment.Api.Controllers;
 [Route("patients")]
 public class PatientsController : ControllerBase
 {
-    private readonly DataStore _dataStore;
+    private readonly ClinicDbContext _db;
+	private readonly TimeProvider _clock;
+	// set timezone
+	private static readonly TimeZoneInfo KuwaitZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Kuwait");
 
     // Constructor
-    public PatientsController(DataStore dataStore)
+    public PatientsController(ClinicDbContext db, TimeProvider clock)
     {
-        _dataStore = dataStore;
+        _db = db;
+		_clock = clock;
     }
 
-    // GET /patients — Retrieve all registered patients from DataStore.Patients
+    // GET /patients — Retrieve all registered patients from PostgreSQL DB
     [HttpGet]
-    public IActionResult GetPatients()
+    public async Task<IActionResult> GetPatients()
     {
-        return Ok(_dataStore.Patients);
+        var patients = await _db.Patients.ToListAsync();
+        return Ok(patients);
     }
 
-	// Post /patients — Register a new patient by receiving their details and adding them to DataStore.Patients
+	// Post /patients — Register a new patient by receiving their details and adding them to PostgreSQL DB
 	[HttpPost]
-	public IActionResult CreatePatient([FromBody] Patient patient)
+	public async Task<IActionResult> CreatePatient([FromBody] Patient patient)
 	{
+		// Get today's date in Kuwait
+		var kuwaitNow = TimeZoneInfo.ConvertTime(
+			_clock.GetUtcNow(),
+			KuwaitZone
+		);
+		var today = DateOnly.FromDateTime(kuwaitNow.DateTime);
+
 		// Check if any patient information is invalid
 		if (string.IsNullOrWhiteSpace(patient.FirstName)){
 			return BadRequest("First Name is Required");
@@ -46,10 +59,10 @@ public class PatientsController : ControllerBase
 		else if (patient.DateOfBirth == default){
 			return BadRequest("Date of Birth is Required");
 		}
-		else if (patient.DateOfBirth > DateOnly.FromDateTime(DateTime.Today)){
-			return BadRequest("Date of Birth needs to be Before Today");
+		else if (patient.DateOfBirth > today){
+			return BadRequest("Date of Birth cannot be in the future");
 		}
-		else if (patient.DateOfBirth < DateOnly.FromDateTime(DateTime.Today).AddYears(-110)){
+		else if (patient.DateOfBirth < today.AddYears(-110)){
     		return BadRequest("Patient age cannot exceed 110 years.");
 		}
 		// Clinic-103 Bug Fix
@@ -61,17 +74,32 @@ public class PatientsController : ControllerBase
 		{
 			return BadRequest("Civil ID must contain exactly 12 digits.");
 		}
-		else if (_dataStore.Patients.Any(p => p.CivilId == patient.CivilId))
+		else if (await _db.Patients.AnyAsync(p => p.CivilId == patient.CivilId))
 		{
 			return Conflict("A patient with this Civil ID already exists.");
 		}
 		else
 		{
 			// Generate ID and add patient
-			patient.Id = _dataStore.Patients.Count + 1;
-			_dataStore.Patients.Add(patient);
+			patient.Id = 0;		// default
+			_db.Patients.Add(patient);
+
+			try
+			{
+				// Save patient to PostgreSQL
+				await _db.SaveChangesAsync();
+			}
+			catch (DbUpdateException error) when (		// database update exception
+				error.InnerException is Npgsql.PostgresException pgError &&		// Check that the underlying error came from PostgreSQL. Store it in pgError.
+				pgError.SqlState == Npgsql.PostgresErrorCodes.UniqueViolation &&		// Check that PostgreSQL rejected a duplicate value. PostgreSQL error code: 23505
+				pgError.ConstraintName == "IX_Patients_CivilId")		// Check that the duplicate occurred specifically on the Civil ID unique index
+			{
+				// Handle duplicate Civil IDs rejected by PostgreSQL
+				return Conflict("A patient with this Civil ID already exists.");
+			}
 
 			return StatusCode(201, patient);
 		}
+
 	}
 }

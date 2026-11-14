@@ -39,5 +39,11 @@ public class ClinicDbContext : DbContext
         modelBuilder.Entity<Appointment>()
             .Property(a => a.StartTime)
             .HasColumnType("timestamp without time zone");
+        
+        // Prevent two active appointments for the same doctor and start time
+        modelBuilder.Entity<Appointment>()
+            .HasIndex(a => new { a.DoctorId, a.StartTime })
+            .IsUnique()
+            .HasFilter("\"IsCancelled\" = false");
     }
 }

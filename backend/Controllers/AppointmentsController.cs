@@ -3,6 +3,7 @@
 using Microsoft.AspNetCore.Mvc;
 using DoctorsAppointment.Api.Data;
 using DoctorsAppointment.Api.Models;
+using Microsoft.EntityFrameworkCore;
 
 
 namespace DoctorsAppointment.Api.Controllers;
@@ -11,7 +12,7 @@ namespace DoctorsAppointment.Api.Controllers;
 [Route("appointments")]
 public class AppointmentsController : ControllerBase
 {
-    private readonly DataStore _dataStore;
+    private readonly ClinicDbContext _db;
 	private readonly TimeProvider _clock;
 	private static readonly TimeZoneInfo KuwaitZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Kuwait");
 
@@ -31,23 +32,22 @@ public class AppointmentsController : ControllerBase
 	}
 
     // Constructor
-    public AppointmentsController(DataStore dataStore, TimeProvider? clock = null)
+    public AppointmentsController(ClinicDbContext db, TimeProvider? clock = null)
     {
-        _dataStore = dataStore;
+        _db = db;
 		_clock = clock ?? TimeProvider.System;	// to unify timezone
 
     }
 
     // GET request to retrieve appointments
     [HttpGet]
-    public IActionResult GetAppointments(	// Filters Added
+    public async Task<IActionResult> GetAppointments(	// Filters Added
 		[FromQuery] int? doctorId,
     	[FromQuery] DateOnly? date
-		// [FromQuery] string? speciality
-
 	)
     {
-		var appointments = _dataStore.Appointments.AsEnumerable();
+		// Start building a database query
+		var appointments = _db.Appointments.AsQueryable();
 
 		// Filter by Doctor ID
 		if (doctorId.HasValue)
@@ -58,21 +58,26 @@ public class AppointmentsController : ControllerBase
 		// Filter by Date
 		if (date.HasValue)
 		{
-			appointments = appointments.Where(filter_date =>
-				DateOnly.FromDateTime(filter_date.StartTime) == date.Value);
+			var start = date.Value.ToDateTime(TimeOnly.MinValue);
+        	var end = start.AddDays(1);
+
+			appointments = appointments.Where(filter_date => filter_date.StartTime >= start && filter_date.StartTime < end);
+
 		}
-        // return Ok(_dataStore.Appointments);
-		return Ok(appointments.ToList());
+		
+		// Execute the query and retrieve the results
+		var results = await appointments.ToListAsync();
+		return Ok(results);
     }
 
 	// POST request to create new appointments
 		
 	[HttpPost]
-	public IActionResult CreateAppointment([FromBody] Appointment appointment)
+	public async Task<IActionResult> CreateAppointment([FromBody] Appointment appointment)
 	{
 		// 1. Validate Doctor and Patient IDs
-		if (!_dataStore.Doctors.Any(dr => dr.Id == appointment.DoctorId) ||
-			!_dataStore.Patients.Any(p => p.Id == appointment.PatientId))
+		if (!await _db.Doctors.AnyAsync(d => d.Id == appointment.DoctorId)||
+			!await _db.Patients.AnyAsync(p => p.Id == appointment.PatientId))
 		{
 			return BadRequest("Invalid doctor or patient ID.");
 		}
@@ -107,35 +112,48 @@ public class AppointmentsController : ControllerBase
 			return BadRequest("Cannot book an appointment in the past.");
 		}
 		// 6. Prevent double booking Doctor
-		lock (_dataStore.BookingLock)
-			{
-				// Check whether the doctor already has an appointment
-				if (_dataStore.Appointments.Any(i =>
-					i.DoctorId == appointment.DoctorId &&
-					i.StartTime == appointment.StartTime &&
-					!i.IsCancelled))
-				{
-					return Conflict("This doctor already has an appointment at this time.");
-				}
+		// Check whether the doctor already has an active booking
+		bool booked = await _db.Appointments.AnyAsync(a => 
+			a.DoctorId == appointment.DoctorId && 
+			a.StartTime == appointment.StartTime && 
+			!a.IsCancelled);
 
-				// Create the appointment
-				appointment.Id = _dataStore.Appointments.Count + 1;
-				appointment.IsCancelled = false;
+		if (booked){
+			return Conflict("This doctor already has an appointment at this time.");
+		}
 
-				_dataStore.Appointments.Add(appointment);
+		// Create the appointment
+		appointment.Id = 0;
+		appointment.IsCancelled = false;
 
-				return StatusCode(201, appointment);
-			}
+		// Prepare the record for insertion
+		_db.Appointments.Add(appointment);
+
+		try
+		{
+			// Save the appointment to PostgreSQL
+			await _db.SaveChangesAsync();
+		}
+		catch (DbUpdateException error) when (
+			error.InnerException is Npgsql.PostgresException pgError &&
+			pgError.SqlState == Npgsql.PostgresErrorCodes.UniqueViolation &&
+			pgError.ConstraintName == "IX_Appointments_DoctorId_StartTime")
+		{
+			return Conflict("This doctor already has an appointment at this time.");
+		}
+
+		return StatusCode(201, appointment);
+
 	}
 
 
     // DELETE request to cancel an appointment
     [HttpDelete("{id}")]
-    public IActionResult CancelAppointment(int id)
+    public async Task<IActionResult> CancelAppointment(int id)
     {
         // find the appointment by ID
-        var appointment = _dataStore.Appointments
-            .FirstOrDefault(a => a.Id == id); // instead of .Any() because it retrieves the actual object i.e. data
+        var appointment = await _db.Appointments
+            .FirstOrDefaultAsync(a => a.Id == id); // instead of .Any() because it retrieves the actual object i.e. data
 
         // check if appointment exists
         if (appointment == null)
@@ -151,19 +169,18 @@ public class AppointmentsController : ControllerBase
 
         // Cancel the appointment
         appointment.IsCancelled = true;
-
+		await _db.SaveChangesAsync();
         return NoContent();
     }
 
-
 	// Get Doctor's Avaliability
 	[HttpGet("availability")]
-	public IActionResult GetAvailability(
+	public async Task<IActionResult> GetAvailability(
 		[FromQuery] int doctorId,
 		[FromQuery] DateOnly date)
 	{
 		// 1. Check if doctor exists
-		if (!_dataStore.Doctors.Any(doctor => doctor.Id == doctorId))
+		if (! await _db.Doctors.AnyAsync(doctor => doctor.Id == doctorId))
 		{
 			return NotFound("Doctor not found.");
 		}
@@ -181,26 +198,33 @@ public class AppointmentsController : ControllerBase
 			return BadRequest("The clinic is closed on Fridays and Saturdays.");
 		}
 
-		// 4. Generate the 16 possible time slots
+		var dayStart = date.ToDateTime(TimeOnly.MinValue);
+		var dayEnd = dayStart.AddDays(1);
+
+		// Retrieve existing active bookings for this doctor and date
+		var bookedTimes = await _db.Appointments
+			.Where(a => a.DoctorId == doctorId &&
+						!a.IsCancelled &&
+						a.StartTime >= dayStart &&
+						a.StartTime < dayEnd)
+			.Select(a => a.StartTime)
+			.ToListAsync();
+
 		var slots = new List<object>();
 		var now = GetKuwaitNow();
 
+		// Generate the existing 16 half-hour slots
 		for (int i = 0; i < 16; i++)
 		{
 			var slotTime = date.ToDateTime(new TimeOnly(8, 0))
 							.AddMinutes(i * 30);
 
-			// 5. Check if slot is already booked
-			bool booked = _dataStore.Appointments.Any(a =>
-				a.DoctorId == doctorId &&
-				a.StartTime == slotTime &&
-				!a.IsCancelled);
+			bool booked = bookedTimes.Contains(slotTime);
 
-			// 6. Add slot and availability status
 			slots.Add(new
 			{
 				time = slotTime.ToString("HH:mm"),
-				available = !booked && (slotTime > now),
+				available = !booked && slotTime > now
 			});
 		}
 

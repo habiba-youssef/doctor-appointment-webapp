@@ -9,9 +9,9 @@ Brief summary of each reported issue, its cause, the changes made, and the regre
 - **Test:** `CLINIC101()` in `Clinic101Tests.cs` runs two simultaneous booking attempts and expects exactly one **201 Created** and one **409 Conflict**.
 - **Reference:**\
 Race Condition error\
-![Race Condition error](Clinic101ref1.png)\
+![Race Condition error](images/Clinic101ref1.png)\
 Wouldn’t work later on because two separate ASP.NET API servers during two separate bookings don’t communicate\
-![Clinic101Reference2](Clinic101ref2.png)\
+![Clinic101Reference2](images/Clinic101ref2.png)\
 
 > **Future Improvements (During Part B):**
 >- **Current limitation:** The C# lock prevents simultaneous bookings within a single ASP.NET Core application instance because all requests share the same BookingLock object.
@@ -26,8 +26,8 @@ Wouldn’t work later on because two separate ASP.NET API servers during two sep
 - **Test:** `CLINIC102()` in `Clinic102Test.cs` uses a fake UTC clock to check that a 10:00 Kuwait booking is rejected when Kuwait time is already 11:00.
 - **Reference:** 
 
-![Clinic102Reference](Clinic102ref1.png)
-![Clinic102Reference](Clinic102ref2.png)
+![Clinic102Reference](images/Clinic102ref1.png)
+![Clinic102Reference](images/Clinic102ref2.png)
 
 
 ## CLINIC-103 — Missing Gender Saved as Female

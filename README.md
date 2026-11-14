@@ -101,10 +101,10 @@ Base URL: `http://localhost:5126`
 The API uses appropriate HTTP responses, including **201 Created**, **204 No Content**, **400 Bad Request**, **404 Not Found**, and **409 Conflict**, depending on the request.
 
 ## File Architecture
-![FileArchitecture](FileArchitecture.drawio.png)
+![FileArchitecture](images/FileArchitecture.drawio.png)
 
 ## Flow of Information Architecture
-![InfoFlowArchitecture](InfoFlowArchitecture.drawio.png)
+![InfoFlowArchitecture](images/InfoFlowArchitecture.drawio.png)
 
 ### Project structure
 

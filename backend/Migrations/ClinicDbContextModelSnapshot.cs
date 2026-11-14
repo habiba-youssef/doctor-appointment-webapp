@@ -44,9 +44,11 @@ namespace DoctorsAppointment.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DoctorId");
-
                     b.HasIndex("PatientId");
+
+                    b.HasIndex("DoctorId", "StartTime")
+                        .IsUnique()
+                        .HasFilter("\"IsCancelled\" = false");
 
                     b.ToTable("Appointments");
                 });

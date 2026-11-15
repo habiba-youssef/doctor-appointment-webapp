@@ -38,17 +38,17 @@ public enum AvailabilityStatus
 }
 public record AvailabilityResult(
     AvailabilityStatus Status,
-	List<object>? Slots = null,
+	List<AvailabilitySlot>? Slots = null,
     string? Error = null
 );
 
-public class AppointmentService
+public class AppointmentsService
 {
     private readonly ClinicDbContext _db;
     private readonly TimeProvider _clock;
     private static readonly TimeZoneInfo KuwaitZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Kuwait");
     // Constructor
-    public AppointmentService(ClinicDbContext db, TimeProvider clock)
+    public AppointmentsService(ClinicDbContext db, TimeProvider clock)
     {
         _db = db;
         _clock = clock;
@@ -64,8 +64,7 @@ public class AppointmentService
     }
 
     // Create an appointment
-    public async Task<BookingResult> CreateAppointmentAsync(
-        Appointment appointment)
+    public async Task<BookingResult> CreateAppointmentAsync(Appointment appointment)
     {
         // 1. Check doctor and patient exist
         bool doctorExists = await _db.Doctors.AnyAsync(d => d.Id == appointment.DoctorId);
@@ -239,7 +238,7 @@ public class AppointmentService
 			.Select(a => a.StartTime)
 			.ToListAsync();
 
-		var slots = new List<object>();
+		var slots = new List<AvailabilitySlot>();
 		var now = GetKuwaitNow();
 
 		// Generate the existing 16 half-hour slots
@@ -250,11 +249,11 @@ public class AppointmentService
 
 			bool booked = bookedTimes.Contains(slotTime);
 
-			slots.Add(new
-			{
-				time = slotTime.ToString("HH:mm"),
-				available = !booked && slotTime > now
-			});
+			slots.Add(new AvailabilitySlot(
+				slotTime.ToString("HH:mm"),
+				!booked && slotTime > now
+            )
+        );
 		}
 
 		return new(
@@ -263,6 +262,7 @@ public class AppointmentService
 		);
 	}
 
+    // Retrieve Appointments
 	public async Task<List<Appointment>> GetAppointmentsAsync(int? doctorId, DateOnly? date)
 		{
 			// Start building a database query
@@ -285,6 +285,8 @@ public class AppointmentService
 			}
 
 			// Execute the query and retrieve the results
-			return await appointments.ToListAsync();
+			return await appointments
+                .OrderBy(t => t.StartTime)
+                .ToListAsync();
 		}
 }

@@ -39,3 +39,9 @@ public class Appointment
     public DateTime StartTime { get; set; }
     public bool IsCancelled { get; set; }
 }
+
+// Availiability Slot Model
+public record AvailabilitySlot(
+    string Time,
+    bool Available
+);

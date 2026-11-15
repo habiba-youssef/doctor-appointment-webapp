@@ -13,13 +13,9 @@ builder.Services.AddDbContext<ClinicDbContext>(options =>
 );
 
 // Add services to the container.
-builder.Services.AddScoped<AppointmentService>();
+builder.Services.AddScoped<AppointmentsService>();
 builder.Services.AddControllers();
 builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
-// builder.Services.AddSingleton<DataStore>(); // run data storage to upload data
-builder.Services.AddSingleton<DataStore>(serviceProvider =>
-    new DataStore(serviceProvider.GetRequiredService<IWebHostEnvironment>()));      // specifies constructor
-
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 

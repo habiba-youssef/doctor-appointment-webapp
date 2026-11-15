@@ -10,9 +10,9 @@ namespace DoctorsAppointment.Api.Controllers;
 [Route("appointments")]
 public class AppointmentsController : ControllerBase
 {
-	private readonly AppointmentService _appointmentService;
+	private readonly AppointmentsService _appointmentService;
     // Constructor
-	public AppointmentsController(AppointmentService appointmentService)
+	public AppointmentsController(AppointmentsService appointmentService)
 	{
 		_appointmentService = appointmentService;
 	}

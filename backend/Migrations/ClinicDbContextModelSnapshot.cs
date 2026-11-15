@@ -87,6 +87,56 @@ namespace DoctorsAppointment.Api.Migrations
                     b.ToTable("Doctors");
                 });
 
+            modelBuilder.Entity("DoctorsAppointment.Api.Models.DoctorLeave", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DoctorId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly>("LeaveDate")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DoctorId", "LeaveDate")
+                        .IsUnique();
+
+                    b.ToTable("DoctorLeaves");
+                });
+
+            modelBuilder.Entity("DoctorsAppointment.Api.Models.DoctorSchedule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DoctorId")
+                        .HasColumnType("integer");
+
+                    b.Property<TimeOnly>("EndTime")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<TimeOnly>("StartTime")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<int>("WorkingDays")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DoctorId", "WorkingDays")
+                        .IsUnique();
+
+                    b.ToTable("DoctorSchedules");
+                });
+
             modelBuilder.Entity("DoctorsAppointment.Api.Models.Patient", b =>
                 {
                     b.Property<int>("Id")
@@ -136,6 +186,24 @@ namespace DoctorsAppointment.Api.Migrations
                     b.HasOne("DoctorsAppointment.Api.Models.Patient", null)
                         .WithMany()
                         .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("DoctorsAppointment.Api.Models.DoctorLeave", b =>
+                {
+                    b.HasOne("DoctorsAppointment.Api.Models.Doctor", null)
+                        .WithMany()
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("DoctorsAppointment.Api.Models.DoctorSchedule", b =>
+                {
+                    b.HasOne("DoctorsAppointment.Api.Models.Doctor", null)
+                        .WithMany()
+                        .HasForeignKey("DoctorId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

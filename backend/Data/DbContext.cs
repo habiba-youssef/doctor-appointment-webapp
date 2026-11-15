@@ -16,6 +16,9 @@ public class ClinicDbContext : DbContext
     public DbSet<Doctor> Doctors => Set<Doctor>();
     public DbSet<Patient> Patients => Set<Patient>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
+    // Doctor schedules and leave
+    public DbSet<DoctorSchedule> DoctorSchedules => Set<DoctorSchedule>();
+    public DbSet<DoctorLeave> DoctorLeaves => Set<DoctorLeave>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -45,5 +48,27 @@ public class ClinicDbContext : DbContext
             .HasIndex(a => new { a.DoctorId, a.StartTime })
             .IsUnique()
             .HasFilter("\"IsCancelled\" = false");
+
+        // Connect doctor schedules to doctors
+        modelBuilder.Entity<DoctorSchedule>()
+            .HasOne<Doctor>()
+            .WithMany()
+            .HasForeignKey(s => s.DoctorId);
+
+        // Connect doctor leave to doctors
+        modelBuilder.Entity<DoctorLeave>()
+            .HasOne<Doctor>()
+            .WithMany()
+            .HasForeignKey(l => l.DoctorId);
+
+        // Prevent duplicate schedules for the same doctor and day
+        modelBuilder.Entity<DoctorSchedule>()
+            .HasIndex(s => new { s.DoctorId, s.WorkingDays })
+            .IsUnique();
+
+        // Prevent duplicate leave records for the same doctor and date
+        modelBuilder.Entity<DoctorLeave>()
+            .HasIndex(l => new { l.DoctorId, l.LeaveDate })
+            .IsUnique();
     }
 }

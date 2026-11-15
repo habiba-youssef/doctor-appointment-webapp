@@ -11,7 +11,6 @@ public enum BookingStatus
     Invalid,
     Conflict
 }
-
 // Result returned by the service to the controller
 public record BookingResult(
     BookingStatus Status,
@@ -47,10 +46,7 @@ public class AppointmentService
 {
     private readonly ClinicDbContext _db;
     private readonly TimeProvider _clock;
-
-    private static readonly TimeZoneInfo KuwaitZone =
-        TimeZoneInfo.FindSystemTimeZoneById("Asia/Kuwait");
-
+    private static readonly TimeZoneInfo KuwaitZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Kuwait");
     // Constructor
     public AppointmentService(ClinicDbContext db, TimeProvider clock)
     {
@@ -260,10 +256,35 @@ public class AppointmentService
 				available = !booked && slotTime > now
 			});
 		}
-		
+
 		return new(
 			AvailabilityStatus.Valid,
 			Slots: slots
 		);
 	}
+
+	public async Task<List<Appointment>> GetAppointmentsAsync(int? doctorId, DateOnly? date)
+		{
+			// Start building a database query
+			var appointments = _db.Appointments.AsQueryable();
+
+			// Filter by Doctor's ID
+			if (doctorId.HasValue)
+			{
+				appointments = appointments.Where(filter_id => filter_id.DoctorId == doctorId.Value);
+
+			}
+
+			// Filter by Date
+			if (date.HasValue)
+			{
+				var start = date.Value.ToDateTime(TimeOnly.MinValue);
+				var end = start.AddDays(1);
+
+				appointments = appointments.Where(filter_date => filter_date.StartTime >= start && filter_date.StartTime < end);
+			}
+
+			// Execute the query and retrieve the results
+			return await appointments.ToListAsync();
+		}
 }

@@ -1,79 +1,30 @@
 // Handles booking, listing, and cancelling appointments
 
 using Microsoft.AspNetCore.Mvc;
-using DoctorsAppointment.Api.Data;
 using DoctorsAppointment.Api.Models;
-using Microsoft.EntityFrameworkCore;
 using DoctorsAppointment.Api.Services;
 
-
 namespace DoctorsAppointment.Api.Controllers;
-
 
 [ApiController]
 [Route("appointments")]
 public class AppointmentsController : ControllerBase
 {
-    private readonly ClinicDbContext _db;
-	private readonly TimeProvider _clock;
-	private static readonly TimeZoneInfo KuwaitZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Kuwait");
 	private readonly AppointmentService _appointmentService;
-
-	// method that returns kuwait timing
-	private DateTime GetKuwaitNow()
-	{
-		// 1. Get the current UTC time
-		var utcNow = _clock.GetUtcNow();
-
-		// 2. Convert UTC to Kuwait time
-		var kuwaitNow = TimeZoneInfo.ConvertTime(
-			utcNow, KuwaitZone
-		);
-
-		// 3. Return the Kuwait local date and time
-		return kuwaitNow.DateTime;
-	}
-
     // Constructor
-	public AppointmentsController(
-		ClinicDbContext db,
-		TimeProvider clock,
-		AppointmentService appointmentService)
+	public AppointmentsController(AppointmentService appointmentService)
 	{
-		_db = db;
-		_clock = clock;
 		_appointmentService = appointmentService;
 	}
 
     // GET request to retrieve appointments
     [HttpGet]
-    public async Task<IActionResult> GetAppointments(	// Filters Added
-		[FromQuery] int? doctorId,
-    	[FromQuery] DateOnly? date
-	)
+    public async Task<IActionResult> GetAppointments([FromQuery] int? doctorId, [FromQuery] DateOnly? date)
     {
-		// Start building a database query
-		var appointments = _db.Appointments.AsQueryable();
-
-		// Filter by Doctor ID
-		if (doctorId.HasValue)
-		{
-			appointments = appointments.Where(filter_id => filter_id.DoctorId == doctorId.Value);
-		}
-
-		// Filter by Date
-		if (date.HasValue)
-		{
-			var start = date.Value.ToDateTime(TimeOnly.MinValue);
-        	var end = start.AddDays(1);
-
-			appointments = appointments.Where(filter_date => filter_date.StartTime >= start && filter_date.StartTime < end);
-
-		}
-		
-		// Execute the query and retrieve the results
-		var results = await appointments.ToListAsync();
-		return Ok(results);
+        // Ask the service to retrieve appointments
+        var appointments = await _appointmentService.GetAppointmentsAsync(doctorId, date);
+        // Return appointments to frontend
+        return Ok(appointments);
     }
 
 	// POST request to create new appointments
@@ -99,7 +50,6 @@ public class AppointmentsController : ControllerBase
 	{
 		// Ask the service to cancel the appointment
 		var result = await _appointmentService.CancelAppointmentAsync(id);
-
 		// Convert the service result into an HTTP response
 		return result.Status switch
 		{
@@ -111,11 +61,9 @@ public class AppointmentsController : ControllerBase
 	}
 
 
-	// Get Doctor's Avaliability
+	// GET request to retrieve Doctor's Avaliability
 	[HttpGet("availability")]
-	public async Task<IActionResult> GetAvailability(
-		[FromQuery] int doctorId,
-		[FromQuery] DateOnly date)
+	public async Task<IActionResult> GetAvailability([FromQuery] int doctorId, [FromQuery] DateOnly date)
 	{
 		// Ask the service to retrieve availability
 		var result = await _appointmentService.GetAvailabilityAsync(

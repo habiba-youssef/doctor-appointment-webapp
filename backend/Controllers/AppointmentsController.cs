@@ -63,12 +63,10 @@ public class AppointmentsController : ControllerBase
 
 	// GET request to retrieve Doctor's Avaliability
 	[HttpGet("availability")]
-	public async Task<IActionResult> GetAvailability([FromQuery] int doctorId, [FromQuery] DateOnly date)
+	public async Task<IActionResult> GetAvailability([FromQuery] int doctorId, [FromQuery] DateOnly date, [FromQuery] AppointmentType type)
 	{
 		// Ask the service to retrieve availability
-		var result = await _appointmentService.GetAvailabilityAsync(
-			doctorId, date
-		);
+		var result = await _appointmentService.GetAvailabilityAsync(doctorId, date, type);
 
 		// Convert results into HTTP responses
 		return result.Status switch
@@ -76,6 +74,7 @@ public class AppointmentsController : ControllerBase
 			AvailabilityStatus.Valid => Ok(result.Slots),
 			AvailabilityStatus.InvalidDoc => NotFound(result.Error),
 			AvailabilityStatus.InvalidDate => BadRequest(result.Error),
+			AvailabilityStatus.InvalidType => BadRequest(result.Error),
 			AvailabilityStatus.Closed => BadRequest(result.Error),
 			_ => throw new InvalidOperationException("Unexpected availability result.")
 		};

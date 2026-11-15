@@ -35,6 +35,7 @@ public enum AvailabilityStatus
     Valid,
 	InvalidDoc,
     InvalidDate,
+    InvalidType,
 	Closed,
 }
 public record AvailabilityResult(
@@ -240,7 +241,7 @@ public class AppointmentsService
 	}
 
 	// Get doctor's Availability
-    public async Task<AvailabilityResult> GetAvailabilityAsync(int doctorId, DateOnly date)
+    public async Task<AvailabilityResult> GetAvailabilityAsync(int doctorId, DateOnly date, AppointmentType type)
 	{
 		// 1. Check if doctor exists
 		if (! await _db.Doctors.AnyAsync(doctor => doctor.Id == doctorId))
@@ -270,35 +271,61 @@ public class AppointmentsService
             );
 		}
 
+        // Check if appointment type is valid
+        if (!Enum.IsDefined(type))
+        {
+            return new(
+                AvailabilityStatus.InvalidType,
+                Error: "Invalid appointment type."
+            );
+        }
+
 		var dayStart = date.ToDateTime(TimeOnly.MinValue);
 		var dayEnd = dayStart.AddDays(1);
 
 		// Retrieve existing active bookings for this doctor and date
-		var bookedTimes = await _db.Appointments
-			.Where(a => a.DoctorId == doctorId &&
-						!a.IsCancelled &&
-						a.StartTime >= dayStart &&
-						a.StartTime < dayEnd)
-			.Select(a => a.StartTime)
-			.ToListAsync();
+        var existingAppointments = await _db.Appointments
+            .AsNoTracking()
+            .Where(a => a.DoctorId == doctorId &&
+                        !a.IsCancelled &&
+                        a.StartTime >= dayStart &&
+                        a.StartTime < dayEnd)
+            .ToListAsync();
 
 		var slots = new List<AvailabilitySlot>();
 		var now = KuwaitTimeHelper.GetNow(_clock);
 
-		// Generate the existing 16 half-hour slots
-		for (int i = 0; i < 16; i++)
-		{
-			var slotTime = date.ToDateTime(new TimeOnly(8, 0))
-							.AddMinutes(i * 30);
+        // Get duration of the requested appointment type
+        int durationMinutes = GetAppointmentLength(type);
+        // Clinic closing time
+        var clinicEnd = date.ToDateTime(new TimeOnly(16, 0));
 
-			bool booked = bookedTimes.Contains(slotTime);
+        // Generate 32 slots at 15-minute intervals
+        for (int i = 0; i < 32; i++)
+        {
+            var slotTime = date.ToDateTime(new TimeOnly(8, 0)).AddMinutes(i * 15);
+            var slotEnd = slotTime.AddMinutes(durationMinutes);
 
-			slots.Add(new AvailabilitySlot(
-				slotTime.ToString("HH:mm"),
-				!booked && slotTime > now
-            )
-        );
-		}
+            // Check if this slot overlaps any existing appointment
+            bool overlaps = existingAppointments.Any(existing =>
+            {
+                var existingEnd = existing.StartTime.AddMinutes(
+                    GetAppointmentLength(existing.Type)
+                );
+
+                return slotTime < existingEnd &&
+                    slotEnd > existing.StartTime;
+            });
+
+            // Determine whether the slot is available
+            bool available =
+                !overlaps &&
+                slotTime > now &&
+                slotEnd <= clinicEnd;
+
+            // Add the slot to the list
+            slots.Add(new AvailabilitySlot(slotTime.ToString("HH:mm"),available));
+        }
 
 		return new(
 			AvailabilityStatus.Valid,
@@ -316,7 +343,6 @@ public class AppointmentsService
 			if (doctorId.HasValue)
 			{
 				appointments = appointments.Where(filter_id => filter_id.DoctorId == doctorId.Value);
-
 			}
 
 			// Filter by Date

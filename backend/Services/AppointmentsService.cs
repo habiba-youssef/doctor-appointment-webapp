@@ -30,6 +30,19 @@ public record CancellationResult(
     string? Error = null
 );
 
+public enum AvailabilityStatus
+{
+    Valid,
+	InvalidDoc,
+    InvalidDate,
+	Closed,
+}
+public record AvailabilityResult(
+    AvailabilityStatus Status,
+	List<object>? Slots = null,
+    string? Error = null
+);
+
 public class AppointmentService
 {
     private readonly ClinicDbContext _db;
@@ -159,8 +172,7 @@ public class AppointmentService
     public async Task<CancellationResult> CancelAppointmentAsync(int id)
 	{
 		// find the appointment by ID
-        var appointment = await _db.Appointments
-            .FirstOrDefaultAsync(a => a.Id == id); // instead of .Any() because it retrieves the actual object i.e. data
+        var appointment = await _db.Appointments.FirstOrDefaultAsync(a => a.Id == id); // instead of .Any() because it retrieves the actual object i.e. data
 
         // check if appointment exists
         if (appointment == null)
@@ -186,5 +198,72 @@ public class AppointmentService
 
 		// Canellation successful
         return new(CancellationStatus.Cancelled);
+	}
+
+	// Get doctor's Availability
+    public async Task<AvailabilityResult> GetAvailabilityAsync(int doctorId, DateOnly date)
+	{
+		// 1. Check if doctor exists
+		if (! await _db.Doctors.AnyAsync(doctor => doctor.Id == doctorId))
+		{
+			return new(
+                AvailabilityStatus.InvalidDoc,
+                Error: "Doctor not found."
+            );
+		}
+
+		// 2. Check if date is valid
+		if (date == default)
+		{
+			return new(
+                AvailabilityStatus.InvalidDate,
+                Error: "Invalid Date"
+            );
+		}
+
+		// 3. Check working days
+		if (date.DayOfWeek == DayOfWeek.Friday ||
+			date.DayOfWeek == DayOfWeek.Saturday)
+		{
+			return new(
+                AvailabilityStatus.Closed,
+                Error: "The clinic is closed on Fridays and Saturdays."
+            );
+		}
+
+		var dayStart = date.ToDateTime(TimeOnly.MinValue);
+		var dayEnd = dayStart.AddDays(1);
+
+		// Retrieve existing active bookings for this doctor and date
+		var bookedTimes = await _db.Appointments
+			.Where(a => a.DoctorId == doctorId &&
+						!a.IsCancelled &&
+						a.StartTime >= dayStart &&
+						a.StartTime < dayEnd)
+			.Select(a => a.StartTime)
+			.ToListAsync();
+
+		var slots = new List<object>();
+		var now = GetKuwaitNow();
+
+		// Generate the existing 16 half-hour slots
+		for (int i = 0; i < 16; i++)
+		{
+			var slotTime = date.ToDateTime(new TimeOnly(8, 0))
+							.AddMinutes(i * 30);
+
+			bool booked = bookedTimes.Contains(slotTime);
+
+			slots.Add(new
+			{
+				time = slotTime.ToString("HH:mm"),
+				available = !booked && slotTime > now
+			});
+		}
+		
+		return new(
+			AvailabilityStatus.Valid,
+			Slots: slots
+		);
 	}
 }

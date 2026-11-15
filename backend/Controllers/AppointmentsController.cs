@@ -117,55 +117,19 @@ public class AppointmentsController : ControllerBase
 		[FromQuery] int doctorId,
 		[FromQuery] DateOnly date)
 	{
-		// 1. Check if doctor exists
-		if (! await _db.Doctors.AnyAsync(doctor => doctor.Id == doctorId))
+		// Ask the service to retrieve availability
+		var result = await _appointmentService.GetAvailabilityAsync(
+			doctorId, date
+		);
+
+		// Convert results into HTTP responses
+		return result.Status switch
 		{
-			return NotFound("Doctor not found.");
-		}
-
-		// 2. Check if date is valid
-		if (date == default)
-		{
-			return BadRequest("Invalid date.");
-		}
-
-		// 3. Check working days
-		if (date.DayOfWeek == DayOfWeek.Friday ||
-			date.DayOfWeek == DayOfWeek.Saturday)
-		{
-			return BadRequest("The clinic is closed on Fridays and Saturdays.");
-		}
-
-		var dayStart = date.ToDateTime(TimeOnly.MinValue);
-		var dayEnd = dayStart.AddDays(1);
-
-		// Retrieve existing active bookings for this doctor and date
-		var bookedTimes = await _db.Appointments
-			.Where(a => a.DoctorId == doctorId &&
-						!a.IsCancelled &&
-						a.StartTime >= dayStart &&
-						a.StartTime < dayEnd)
-			.Select(a => a.StartTime)
-			.ToListAsync();
-
-		var slots = new List<object>();
-		var now = GetKuwaitNow();
-
-		// Generate the existing 16 half-hour slots
-		for (int i = 0; i < 16; i++)
-		{
-			var slotTime = date.ToDateTime(new TimeOnly(8, 0))
-							.AddMinutes(i * 30);
-
-			bool booked = bookedTimes.Contains(slotTime);
-
-			slots.Add(new
-			{
-				time = slotTime.ToString("HH:mm"),
-				available = !booked && slotTime > now
-			});
-		}
-
-		return Ok(slots);
+			AvailabilityStatus.Valid => Ok(result.Slots),
+			AvailabilityStatus.InvalidDoc => NotFound(result.Error),
+			AvailabilityStatus.InvalidDate => BadRequest(result.Error),
+			AvailabilityStatus.Closed => BadRequest(result.Error),
+			_ => throw new InvalidOperationException("Unexpected availability result.")
+		};
 	}
 }

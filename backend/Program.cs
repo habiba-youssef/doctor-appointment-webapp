@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using CsvHelper;
 using System.Globalization;
 using DoctorsAppointment.Api.Models;
+using DoctorsAppointment.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<ClinicDbContext>(options =>
@@ -12,6 +13,7 @@ builder.Services.AddDbContext<ClinicDbContext>(options =>
 );
 
 // Add services to the container.
+builder.Services.AddScoped<AppointmentService>();
 builder.Services.AddControllers();
 builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
 // builder.Services.AddSingleton<DataStore>(); // run data storage to upload data

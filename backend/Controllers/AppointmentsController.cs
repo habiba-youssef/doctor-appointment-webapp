@@ -4,9 +4,11 @@ using Microsoft.AspNetCore.Mvc;
 using DoctorsAppointment.Api.Data;
 using DoctorsAppointment.Api.Models;
 using Microsoft.EntityFrameworkCore;
+using DoctorsAppointment.Api.Services;
 
 
 namespace DoctorsAppointment.Api.Controllers;
+
 
 [ApiController]
 [Route("appointments")]
@@ -15,6 +17,7 @@ public class AppointmentsController : ControllerBase
     private readonly ClinicDbContext _db;
 	private readonly TimeProvider _clock;
 	private static readonly TimeZoneInfo KuwaitZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Kuwait");
+	private readonly AppointmentService _appointmentService;
 
 	// method that returns kuwait timing
 	private DateTime GetKuwaitNow()
@@ -32,12 +35,15 @@ public class AppointmentsController : ControllerBase
 	}
 
     // Constructor
-    public AppointmentsController(ClinicDbContext db, TimeProvider? clock = null)
-    {
-        _db = db;
-		_clock = clock ?? TimeProvider.System;	// to unify timezone
-
-    }
+	public AppointmentsController(
+		ClinicDbContext db,
+		TimeProvider clock,
+		AppointmentService appointmentService)
+	{
+		_db = db;
+		_clock = clock;
+		_appointmentService = appointmentService;
+	}
 
     // GET request to retrieve appointments
     [HttpGet]
@@ -71,81 +77,21 @@ public class AppointmentsController : ControllerBase
     }
 
 	// POST request to create new appointments
-		
 	[HttpPost]
 	public async Task<IActionResult> CreateAppointment([FromBody] Appointment appointment)
 	{
-		// 1. Validate Doctor and Patient IDs
-		if (!await _db.Doctors.AnyAsync(d => d.Id == appointment.DoctorId)||
-			!await _db.Patients.AnyAsync(p => p.Id == appointment.PatientId))
+		// Go to service to create the appointment
+		var result = await _appointmentService.CreateAppointmentAsync(appointment);
+
+		// Convert the service result into HTTP response
+		return result.Status switch
 		{
-			return BadRequest("Invalid doctor or patient ID.");
-		}
-
-		// 2. Validate 30-minute appointment slots
-		if (appointment.StartTime == default ||
-			(appointment.StartTime.Minute != 0 &&
-			appointment.StartTime.Minute != 30) ||
-			appointment.StartTime.Second != 0 ||
-			appointment.StartTime.Millisecond != 0)
-		{
-			return BadRequest("Appointments must start on the hour or half hour.");
-		}
-
-		// 3. Validate working hours: 08:00 to 16:00
-		if (appointment.StartTime.Hour < 8 ||
-			appointment.StartTime.Hour >= 16)
-		{
-			return BadRequest("Appointments are only available from 08:00 to 16:00.");
-		}
-
-		// 4. Validate working days: Sunday to Thursday
-		if (appointment.StartTime.DayOfWeek == DayOfWeek.Friday ||
-			appointment.StartTime.DayOfWeek == DayOfWeek.Saturday)
-		{
-			return BadRequest("Appointments are only available Sunday to Thursday.");
-		}
-
-		// 5. Reject appointments in the past
-		if (appointment.StartTime <= GetKuwaitNow())
-		{
-			return BadRequest("Cannot book an appointment in the past.");
-		}
-		// 6. Prevent double booking Doctor
-		// Check whether the doctor already has an active booking
-		bool booked = await _db.Appointments.AnyAsync(a => 
-			a.DoctorId == appointment.DoctorId && 
-			a.StartTime == appointment.StartTime && 
-			!a.IsCancelled);
-
-		if (booked){
-			return Conflict("This doctor already has an appointment at this time.");
-		}
-
-		// Create the appointment
-		appointment.Id = 0;
-		appointment.IsCancelled = false;
-
-		// Prepare the record for insertion
-		_db.Appointments.Add(appointment);
-
-		try
-		{
-			// Save the appointment to PostgreSQL
-			await _db.SaveChangesAsync();
-		}
-		catch (DbUpdateException error) when (
-			error.InnerException is Npgsql.PostgresException pgError &&
-			pgError.SqlState == Npgsql.PostgresErrorCodes.UniqueViolation &&
-			pgError.ConstraintName == "IX_Appointments_DoctorId_StartTime")
-		{
-			return Conflict("This doctor already has an appointment at this time.");
-		}
-
-		return StatusCode(201, appointment);
-
+			BookingStatus.Created => StatusCode(201, result.Appointment),
+			BookingStatus.Invalid => BadRequest(result.Error),
+			BookingStatus.Conflict => Conflict(result.Error),
+			_ => throw new InvalidOperationException("Unexpected Booking Error")
+		};
 	}
-
 
     // DELETE request to cancel an appointment
     [HttpDelete("{id}")]

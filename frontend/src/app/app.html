@@ -79,6 +79,34 @@
 	</p>
 	}
 
+	<!-- Select Appointment Type -->
+	<h3>Select Appointment Type</h3>
+
+	<div class="appointment-types">
+
+	<button
+		type="button"
+		[class.active]="selectedType() === AppointmentType.Consultation"
+		(click)="selectAppointmentType(AppointmentType.Consultation)">
+		Consultation (30 min)
+	</button>
+
+	<button
+		type="button"
+		[class.active]="selectedType() === AppointmentType.FollowUp"
+		(click)="selectAppointmentType(AppointmentType.FollowUp)">
+		Follow-up (15 min)
+	</button>
+
+	<button
+		type="button"
+		[class.active]="selectedType() === AppointmentType.Procedure"
+		(click)="selectAppointmentType(AppointmentType.Procedure)">
+		Procedure (60 min)
+	</button>
+
+	</div>
+
 	<h3>Appointment Date</h3>
 	<label for="date">Select Date:</label>
 	<input 

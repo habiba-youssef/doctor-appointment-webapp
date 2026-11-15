@@ -30,3 +30,9 @@ export interface TimeSlot {
   time: string;
   available: boolean;
 }
+
+export enum AppointmentType {
+    Consultation = 0,
+    FollowUp = 1,
+    Procedure = 2
+}

@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http'; // Allows Angular to send HTTP requests to your backend API.
 import { firstValueFrom } from 'rxjs';    // For Step-by-Step Logic when Booking
+import { AppointmentType } from './models';
 
 const API_BASE_URL = 'http://localhost:5126';
 
@@ -28,10 +29,12 @@ export class App {
   selectedDoctor = signal<Doctor | null>(null); // keeps track of which doctor is selected
   selectedDate = signal('');  // keeps track of date selected
   selectedTime = signal<string | null>(null);
+  selectedType = signal<AppointmentType>(AppointmentType.Consultation);
   availabilityError = signal('');
   patientError = signal('');
   cancellationError = signal('');   // clinic-105 fix
   appointments = signal<Appointment[]>([]);   // for appointments display
+  AppointmentType = AppointmentType;
 
   constructor() {
     this.checkBackend();
@@ -87,6 +90,14 @@ export class App {
     this.availabilitySlots.set([]);
   }
 
+  selectAppointmentType(type: AppointmentType) {
+      this.selectedType.set(type);
+
+      // Clear old availability when appointment type changes
+      this.availabilitySlots.set([]);
+      this.selectedTime.set(null);
+  }
+
   GetAvailability() {
 
     // 1. Get the selected doctor and date
@@ -102,7 +113,7 @@ export class App {
 
     // 3. Send request to backend
     this.http.get<TimeSlot[]>(
-      `${API_BASE_URL}/appointments/availability?doctorId=${doctor.id}&date=${date}`
+      `${API_BASE_URL}/appointments/availability?doctorId=${doctor.id}&date=${date}&type=${this.selectedType()}`
     ).subscribe({
 
       // 4. Store the returned time slots
@@ -179,7 +190,7 @@ export class App {
       // STEP 1: Check availability
       const slots = await firstValueFrom(
         this.http.get<TimeSlot[]>(
-          `${API_BASE_URL}/appointments/availability?doctorId=${doctor.id}&date=${date}`
+          `${API_BASE_URL}/appointments/availability?doctorId=${doctor.id}&date=${date}&type=${this.selectedType()}`
         )
       );
 
@@ -203,7 +214,8 @@ export class App {
         this.http.post(`${API_BASE_URL}/appointments`, {
           doctorId: doctor.id,
           patientId: createdPatient.id,
-          startTime: `${date}T${time}:00`
+          startTime: `${date}T${time}:00`,
+          type: this.selectedType()
         })
       );
 

@@ -19,6 +19,17 @@ public record BookingResult(
     string? Error = null
 );
 
+public enum CancellationStatus
+{
+    Cancelled,
+    NotFound,
+    AlreadyCancelled
+}
+public record CancellationResult(
+    CancellationStatus Status,
+    string? Error = null
+);
+
 public class AppointmentService
 {
     private readonly ClinicDbContext _db;
@@ -43,7 +54,7 @@ public class AppointmentService
         return kuwaitNow.DateTime;
     }
 
-    // Business logic for creating an appointment
+    // Create an appointment
     public async Task<BookingResult> CreateAppointmentAsync(
         Appointment appointment)
     {
@@ -143,4 +154,37 @@ public class AppointmentService
             Appointment: appointment
         );
     }
+
+	// Cancel an appointment
+    public async Task<CancellationResult> CancelAppointmentAsync(int id)
+	{
+		// find the appointment by ID
+        var appointment = await _db.Appointments
+            .FirstOrDefaultAsync(a => a.Id == id); // instead of .Any() because it retrieves the actual object i.e. data
+
+        // check if appointment exists
+        if (appointment == null)
+        {
+            return new(
+                CancellationStatus.NotFound,
+                Error: "Appointment not found."
+            );
+        }
+
+        // Check if already cancelled
+        if (appointment.IsCancelled)
+        {
+            return new(
+                CancellationStatus.AlreadyCancelled,
+                Error: "Appointment is already cancelled."
+            );
+        }
+
+        // Cancel the appointment
+        appointment.IsCancelled = true;
+		await _db.SaveChangesAsync();
+
+		// Canellation successful
+        return new(CancellationStatus.Cancelled);
+	}
 }

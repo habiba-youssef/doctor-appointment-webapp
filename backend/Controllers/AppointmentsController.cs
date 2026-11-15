@@ -94,30 +94,22 @@ public class AppointmentsController : ControllerBase
 	}
 
     // DELETE request to cancel an appointment
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> CancelAppointment(int id)
-    {
-        // find the appointment by ID
-        var appointment = await _db.Appointments
-            .FirstOrDefaultAsync(a => a.Id == id); // instead of .Any() because it retrieves the actual object i.e. data
+	[HttpDelete("{id}")]
+	public async Task<IActionResult> CancelAppointment(int id)
+	{
+		// Ask the service to cancel the appointment
+		var result = await _appointmentService.CancelAppointmentAsync(id);
 
-        // check if appointment exists
-        if (appointment == null)
-        {
-            return NotFound("Appointment not found.");
-        }
+		// Convert the service result into an HTTP response
+		return result.Status switch
+		{
+			CancellationStatus.Cancelled => NoContent(),
+			CancellationStatus.NotFound => NotFound(result.Error),
+			CancellationStatus.AlreadyCancelled => Conflict(result.Error),
+			_ => throw new InvalidOperationException("Unexpected Cancellation Error.")
+		};
+	}
 
-        // Check if already cancelled
-        if (appointment.IsCancelled)
-        {
-            return Conflict("Appointment is already cancelled.");
-        }
-
-        // Cancel the appointment
-        appointment.IsCancelled = true;
-		await _db.SaveChangesAsync();
-        return NoContent();
-    }
 
 	// Get Doctor's Avaliability
 	[HttpGet("availability")]

@@ -146,15 +146,6 @@ export class App {
   }
 
   createPatient(patient: Patient) {
-    // this.http.post<Patient>(`${API_BASE_URL}/patients`, patient)
-    // .subscribe({
-    //   next: (response) => {
-    //     console.log('Patient created:', response);
-    //   },
-    //   error: (error) => {
-    //     console.error('Failed to create patient:', error);
-    //   }
-    // });
     return this.http.post<Patient>(`${API_BASE_URL}/patients`, patient);  //makes it usable in other functions (BookAppointment())
   }
 
@@ -273,6 +264,22 @@ export class App {
   return patient
     ? `${patient.firstName} ${patient.lastName}`
     : 'Unknown Patient';
+  }
+
+  getAppointmentType(type: AppointmentType): string {
+    switch (type) {
+      case AppointmentType.Consultation:
+        return 'Consultation (30 min)';
+
+      case AppointmentType.FollowUp:
+        return 'Follow-up (15 min)';
+
+      case AppointmentType.Procedure:
+        return 'Procedure (60 min)';
+
+      default:
+        return 'Unknown';
+    }
   }
 
   CancelAppointment(appointmentId: number) {

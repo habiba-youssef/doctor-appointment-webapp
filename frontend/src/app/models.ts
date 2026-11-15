@@ -24,6 +24,7 @@ export interface Appointment {
   patientId: number;
   startTime: string;
   isCancelled: boolean;
+  type: AppointmentType
 }
 
 export interface TimeSlot {

@@ -132,21 +132,27 @@
 	</section>
 
 	<!-- SECTION 2: Available Time Slots -->
-	<section>
+	<div class = slotsButton>
 		<h2>Appointment Time Slots</h2>
 
 		<p>Select an available time slot:</p>
 		
 		@for (slot of availabilitySlots(); track slot.time) {
-			<button type="button" [disabled]="!slot.available" (click)="selectTime(slot)">
-				{{ slot.time }} - {{ slot.available ? 'Available' : 'Unavailable' }}
+			<button 
+				type="button" 
+				[disabled]="!slot.available" 
+				[class.active]="selectedTime() === slot.time" 
+				(click)="selectTime(slot)">
+
+				{{ slot.time }} - {{ getSlotEndTime(slot.time) }}<br>
+        		{{ slot.available ? 'Available' : 'Unavailable' }}
 			</button>
 		}
 		@if (selectedTime()) {
 		<p><strong>Selected Time:</strong> {{ selectedTime() }}</p>
 		}
 
-	</section>
+	</div>
 
 	<hr>
 

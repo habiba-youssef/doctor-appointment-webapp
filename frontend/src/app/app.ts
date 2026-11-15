@@ -149,6 +149,27 @@ export class App {
     return this.http.post<Patient>(`${API_BASE_URL}/patients`, patient);  //makes it usable in other functions (BookAppointment())
   }
 
+  getSlotEndTime(startTime: string): string {
+    // 1. Get appointment duration
+    const duration = {
+      [AppointmentType.Consultation]: 30,
+      [AppointmentType.FollowUp]: 15,
+      [AppointmentType.Procedure]: 60
+    }[this.selectedType()];
+
+    // 2. Convert start time into hours and minutes
+    const [hours, minutes] = startTime.split(':').map(Number);
+
+    // 3. Calculate end time in total minutes
+    const totalMinutes = hours * 60 + minutes + duration;
+
+    // 4. Convert back to HH:mm format
+    const endHours = Math.floor(totalMinutes / 60);
+    const endMinutes = totalMinutes % 60;
+
+    return `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
+  }
+
   // Updated Boooking Logic to check availability before registering patient
   async BookAppointment(patient: Patient, form: HTMLFormElement) {
     this.patientError.set('');

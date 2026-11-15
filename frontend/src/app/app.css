@@ -199,8 +199,17 @@ tr:nth-child(even) {
   cursor: pointer;
 }
 
-.appointment-types button.active {
+.appointment-types button.active,
+.slotsButton button.active {
   background: #2e8daf;
   border: 2px solid #2e8daf;
   font-weight: bold;
+}
+
+/* Appointment Time Slot Buttons */
+.slotsButton button {
+    min-width: 200px;
+    padding: 10px ;
+    line-height: 1.6;
+    text-align: center;
 }

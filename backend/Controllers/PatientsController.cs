@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using DoctorsAppointment.Api.Data;
 using DoctorsAppointment.Api.Models;
 using Microsoft.EntityFrameworkCore;
+using DoctorsAppointment.Api.Helpers;
 
 namespace DoctorsAppointment.Api.Controllers;
 
@@ -11,8 +12,6 @@ public class PatientsController : ControllerBase
 {
     private readonly ClinicDbContext _db;
 	private readonly TimeProvider _clock;
-	// set timezone
-	private static readonly TimeZoneInfo KuwaitZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Kuwait");
 
     // Constructor
     public PatientsController(ClinicDbContext db, TimeProvider clock)
@@ -34,11 +33,7 @@ public class PatientsController : ControllerBase
 	public async Task<IActionResult> CreatePatient([FromBody] Patient patient)
 	{
 		// Get today's date in Kuwait
-		var kuwaitNow = TimeZoneInfo.ConvertTime(
-			_clock.GetUtcNow(),
-			KuwaitZone
-		);
-		var today = DateOnly.FromDateTime(kuwaitNow.DateTime);
+		var today = KuwaitTimeHelper.GetToday(_clock);
 
 		// Check if no First Name was added
 		if (string.IsNullOrWhiteSpace(patient.FirstName)){

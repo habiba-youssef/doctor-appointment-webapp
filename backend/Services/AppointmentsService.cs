@@ -1,6 +1,7 @@
 using DoctorsAppointment.Api.Data;
 using DoctorsAppointment.Api.Models;
 using Microsoft.EntityFrameworkCore;
+using DoctorsAppointment.Api.Helpers;
 
 namespace DoctorsAppointment.Api.Services;
 
@@ -46,23 +47,13 @@ public class AppointmentsService
 {
     private readonly ClinicDbContext _db;
     private readonly TimeProvider _clock;
-    private static readonly TimeZoneInfo KuwaitZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Kuwait");
     // Constructor
     public AppointmentsService(ClinicDbContext db, TimeProvider clock)
     {
         _db = db;
         _clock = clock;
     }
-
-    // Get the current time in Kuwait
-    private DateTime GetKuwaitNow()
-    {
-        var utcNow = _clock.GetUtcNow();
-        var kuwaitNow = TimeZoneInfo.ConvertTime(utcNow, KuwaitZone);
-
-        return kuwaitNow.DateTime;
-    }
-
+    
     // Create an appointment
     public async Task<BookingResult> CreateAppointmentAsync(Appointment appointment)
     {
@@ -112,7 +103,7 @@ public class AppointmentsService
         }
 
         // 5. Prevent bookings in the past (Kuwait time)
-        if (appointment.StartTime <= GetKuwaitNow())
+        if (appointment.StartTime <= KuwaitTimeHelper.GetNow(_clock))
         {
             return new(
                 BookingStatus.Invalid,
@@ -239,7 +230,7 @@ public class AppointmentsService
 			.ToListAsync();
 
 		var slots = new List<AvailabilitySlot>();
-		var now = GetKuwaitNow();
+		var now = KuwaitTimeHelper.GetNow(_clock);
 
 		// Generate the existing 16 half-hour slots
 		for (int i = 0; i < 16; i++)

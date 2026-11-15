@@ -47,6 +47,17 @@ public class AppointmentsService
 {
     private readonly ClinicDbContext _db;
     private readonly TimeProvider _clock;
+    private static int GetAppointmentLength(AppointmentType type)
+    {
+        return type switch
+        {
+            AppointmentType.Consultation => 30,
+            AppointmentType.FollowUp => 15,
+            AppointmentType.Procedure => 60,
+            _ => throw new ArgumentOutOfRangeException(nameof(type))
+        };
+    }
+    
     // Constructor
     public AppointmentsService(ClinicDbContext db, TimeProvider clock)
     {
@@ -69,32 +80,45 @@ public class AppointmentsService
             );
         }
 
-        // 2. Validate 30-minute appointment slots
+         // Check that appointment type is valid
+        if (!Enum.IsDefined(appointment.Type))
+        {
+            return new(
+                BookingStatus.Invalid,
+                Error: "Invalid appointment type."
+            );
+        }
+
+        // 2. Validate appointment start time
         if (appointment.StartTime == default ||
-            (appointment.StartTime.Minute != 0 &&
-             appointment.StartTime.Minute != 30) ||
+            appointment.StartTime.Minute % 15 != 0 ||
             appointment.StartTime.Second != 0 ||
             appointment.StartTime.Millisecond != 0)
         {
             return new(
                 BookingStatus.Invalid,
-                Error: "Appointments must start on the hour or half hour."
+                Error: "Appointments must start at :00, :15, :30 or :45"
             );
         }
 
+        // Calculate duration and END time
+        int durationMinutes = GetAppointmentLength(appointment.Type);
+        DateTime endTime = appointment.StartTime.AddMinutes(durationMinutes);
+
         // 3. Validate working hours
-        if (appointment.StartTime.Hour < 8 ||
-            appointment.StartTime.Hour >= 16)
+        var clinicStart = appointment.StartTime.Date.AddHours(8);
+        var clinicEnd = appointment.StartTime.Date.AddHours(16);
+
+        if (appointment.StartTime < clinicStart || endTime > clinicEnd)
         {
             return new(
                 BookingStatus.Invalid,
-                Error: "Appointments are only available from 08:00 to 16:00."
+                Error: "Appointments are only available between 08:00 and 16:00."
             );
         }
 
         // 4. Validate working days
-        if (appointment.StartTime.DayOfWeek == DayOfWeek.Friday ||
-            appointment.StartTime.DayOfWeek == DayOfWeek.Saturday)
+        if (appointment.StartTime.DayOfWeek == DayOfWeek.Friday || appointment.StartTime.DayOfWeek == DayOfWeek.Saturday)
         {
             return new(
                 BookingStatus.Invalid,
@@ -111,19 +135,48 @@ public class AppointmentsService
             );
         }
 
-        // 6. Check for an existing active booking
-        bool booked = await _db.Appointments.AnyAsync(a =>
-            a.DoctorId == appointment.DoctorId &&
-            a.StartTime == appointment.StartTime &&
-            !a.IsCancelled
-        );
+        // 6. Check for overlapping appointments
+        var dayStart = appointment.StartTime.Date;
+        var dayEnd = dayStart.AddDays(1);
 
-        if (booked)
+        // Retrieve active appointments for this doctor OR patient
+        var existingAppointments = await _db.Appointments.AsNoTracking()
+            .Where(a =>
+                !a.IsCancelled &&
+                (a.DoctorId == appointment.DoctorId ||
+                a.PatientId == appointment.PatientId) &&
+                a.StartTime >= dayStart &&
+                a.StartTime < dayEnd)
+            .ToListAsync();
+
+        // Check each existing appointment for overlap
+        foreach (var app in existingAppointments)
         {
-            return new(
-                BookingStatus.Conflict,
-                Error: "This doctor already has an appointment at this time."
+            var appEnd = app.StartTime.AddMinutes(
+                GetAppointmentLength(app.Type)
             );
+
+            bool overlaps =
+                appointment.StartTime < appEnd &&   // Does the new appointment start before the existing appointment ends?
+                endTime > app.StartTime;        // Does the new appointment end after the existing appointment starts?
+
+            if (overlaps)
+            {
+                // Doctor cannot have overlapping appointments
+                if (app.DoctorId == appointment.DoctorId)
+                {
+                    return new(
+                        BookingStatus.Conflict,
+                        Error: "Doctor already has an overlapping appointment."
+                    );
+                }
+
+                // Patient cannot have overlapping appointments
+                return new(
+                    BookingStatus.Conflict,
+                    Error: "Patient already has an overlapping appointment."
+                );
+            }
         }
 
         // 7. Create and save the appointment

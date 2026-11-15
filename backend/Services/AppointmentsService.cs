@@ -110,7 +110,7 @@ public class AppointmentsService
         var clinicStart = appointment.StartTime.Date.AddHours(8);
         var clinicEnd = appointment.StartTime.Date.AddHours(16);
 
-        if (appointment.StartTime < clinicStart || endTime >= clinicEnd)
+        if (appointment.StartTime < clinicStart || endTime > clinicEnd)
         {
             return new(
                 BookingStatus.Invalid,

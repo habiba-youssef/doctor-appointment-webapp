@@ -7,6 +7,13 @@ public enum GenderOption
     Male
 }
 
+public enum AppointmentType
+{
+    Consultation,   // 0 = 30 minutes
+    FollowUp,       // 1 = 15 minutes
+    Procedure       // 2 = 60 minutes
+}
+
 // Doctor's class and structure
 public class Doctor
 {
@@ -38,6 +45,7 @@ public class Appointment
     public int PatientId { get; set; }
     public DateTime StartTime { get; set; }
     public bool IsCancelled { get; set; }
+    public AppointmentType Type { get; set; } = AppointmentType.Consultation;
 }
 
 // Availiability Slot Model

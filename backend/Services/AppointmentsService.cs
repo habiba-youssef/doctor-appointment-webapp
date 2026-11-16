@@ -280,6 +280,21 @@ public class AppointmentsService
             );
         }
 
+        // Get doctor's working schedule for the selected weekday
+        var schedule = await _db.DoctorSchedules
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s =>
+                s.DoctorId == doctorId &&
+                s.WorkingDays == date.DayOfWeek
+            );
+
+        // Check if doctor is on leave
+        bool isOnLeave = await _db.DoctorLeaves
+            .AnyAsync(l =>
+                l.DoctorId == doctorId &&
+                l.LeaveDate == date
+            );
+
 		var dayStart = date.ToDateTime(TimeOnly.MinValue);
 		var dayEnd = dayStart.AddDays(1);
 
@@ -317,11 +332,19 @@ public class AppointmentsService
                     slotEnd > existing.StartTime;
             });
 
+            // Check if the appointment fits inside the doctor's schedule
+            bool withinSchedule =
+                schedule != null &&
+                TimeOnly.FromDateTime(slotTime) >= schedule.StartTime &&
+                TimeOnly.FromDateTime(slotEnd) <= schedule.EndTime;
+
             // Determine whether the slot is available
             bool available =
                 !overlaps &&
                 slotTime > now &&
-                slotEnd <= clinicEnd;
+                slotEnd <= clinicEnd &&
+                withinSchedule &&
+                !isOnLeave;
 
             // Add the slot to the list
             slots.Add(new AvailabilitySlot(slotTime.ToString("HH:mm"),available));

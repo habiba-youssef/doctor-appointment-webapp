@@ -4,6 +4,7 @@ using CsvHelper;
 using System.Globalization;
 using DoctorsAppointment.Api.Models;
 using DoctorsAppointment.Api.Services;
+using CsvHelper.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<ClinicDbContext>(options =>
@@ -39,17 +40,15 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider
         .GetRequiredService<ClinicDbContext>();
 
-    // Only insert doctors if the table is empty
+    // 1. Seed Doctors
     if (!db.Doctors.Any())
     {
-        // Find the existing CSV file
         var path = Path.Combine(
             app.Environment.ContentRootPath,
             "Data",
             "doctors.csv"
         );
 
-        // Read doctors from CSV
         using var reader = new StreamReader(path);
         using var csv = new CsvReader(
             reader,
@@ -58,11 +57,57 @@ using (var scope = app.Services.CreateScope())
 
         var doctors = csv.GetRecords<Doctor>().ToList();
 
-        // Save doctors to PostgreSQL
         db.Doctors.AddRange(doctors);
         db.SaveChanges();
     }
+
+    // 2. Seed Doctor Schedules
+    if (!db.DoctorSchedules.Any())
+    {
+        var path = Path.Combine(
+            app.Environment.ContentRootPath,
+            "Data",
+            "doctor_schedules.csv"
+        );
+
+        using var reader = new StreamReader(path);
+        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        {
+            HeaderValidated = null,
+            MissingFieldFound = null
+        };
+        using var csv = new CsvReader(reader, config);
+
+        var schedules = csv.GetRecords<DoctorSchedule>().ToList();
+
+        db.DoctorSchedules.AddRange(schedules);
+        db.SaveChanges();
+    }
+
+    // 3. Seed Doctor Leave
+    if (!db.DoctorLeaves.Any())
+    {
+        var path = Path.Combine(
+            app.Environment.ContentRootPath,
+            "Data",
+            "doctor_leaves.csv"
+        );
+
+        using var reader = new StreamReader(path);
+        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        {
+            HeaderValidated = null,
+            MissingFieldFound = null
+        };
+        using var csv = new CsvReader(reader, config);
+
+        var leaves = csv.GetRecords<DoctorLeave>().ToList();
+
+        db.DoctorLeaves.AddRange(leaves);
+        db.SaveChanges();
+    }
 }
+
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

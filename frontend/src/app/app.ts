@@ -11,6 +11,7 @@ import { Doctor } from './models';
 import { Patient } from './models';
 import { Appointment } from './models';
 import { TimeSlot } from './models';
+import { RescheduleForm } from './models';
 
 @Component({
   selector: 'app-root',
@@ -39,6 +40,13 @@ export class App {
   existingPatient = signal<Patient | null>(null);   // Stores the patient returned by the backend
   patientSearchStatus = signal<'idle' | 'found' | 'notFound'>('idle');
   patientSearchError = signal('');    // Stores any search error message
+  // Rescheduling
+  reschedule = signal<RescheduleForm | null>(null);
+
+  rescheduleSlots = signal<TimeSlot[]>([]);
+  rescheduleError = signal('');
+  rescheduleSuccess = signal('');
+  savingReschedule = signal(false);
 
   constructor() {
     this.checkBackend();
@@ -424,5 +432,161 @@ export class App {
       this.existingPatient.set(null);
       this.patientSearchStatus.set('idle');
       this.patientSearchError.set('');
+  }
+  
+  StartReschedule(appointment: Appointment) {
+    this.reschedule.set({
+      appointmentId: appointment.id,
+      doctorId: appointment.doctorId,
+      date: appointment.startTime.split('T')[0],
+      time: null
+    });
+
+    this.rescheduleSlots.set([]);
+    this.rescheduleError.set('');
+    this.rescheduleSuccess.set('');
+  }
+
+  GetRescheduleAvailability() {
+    const details = this.reschedule();
+
+    this.rescheduleError.set('');
+    this.rescheduleSlots.set([]);
+
+    if (!details || !details.date) {
+      this.rescheduleError.set('Please select a doctor and date.');
+      return;
+    }
+
+    // Find original appointment to retrieve its type
+    const appointment = this.appointments().find(
+      a => a.id === details.appointmentId
+    );
+
+    if (!appointment) {
+      this.rescheduleError.set('Appointment not found.');
+      return;
+    }
+
+    // Get availability for the new doctor/date
+    this.http.get<TimeSlot[]>(
+      `${API_BASE_URL}/appointments/availability?doctorId=${details.doctorId}&date=${details.date}&type=${appointment.type}`
+    ).subscribe({
+
+      next: (response) => {
+        // Ignore a response if the form has changed
+        const current = this.reschedule();
+
+        if (!current ||
+            current.appointmentId !== details.appointmentId ||
+            current.doctorId !== details.doctorId ||
+            current.date !== details.date) {
+          return;
+        }
+
+        this.rescheduleSlots.set(response);
+      },
+
+      error: (error) => {
+        const current = this.reschedule();
+
+        if (!current ||
+            current.appointmentId !== details.appointmentId ||
+            current.doctorId !== details.doctorId ||
+            current.date !== details.date) {
+          return;
+        }
+
+        this.rescheduleError.set(
+          typeof error.error === 'string'
+            ? error.error
+            : error.error?.title || 'Unable to retrieve availability.'
+        );
+      }
+    });
+  }
+
+  UpdateRescheduleDoctor(doctorId: number) {
+    this.reschedule.update(current =>
+      current ? { ...current, doctorId, time: null } : null
+    );
+
+    this.rescheduleSlots.set([]);
+    this.rescheduleError.set('');
+  }
+
+  UpdateRescheduleDate(date: string) {
+    this.reschedule.update(current =>
+      current ? { ...current, date, time: null } : null
+    );
+
+    this.rescheduleSlots.set([]);
+    this.rescheduleError.set('');
+  }
+
+  SelectRescheduleTime(slot: TimeSlot) {
+    if (!slot.available) {
+      return;
+    }
+
+    this.reschedule.update(current =>
+      current ? { ...current, time: slot.time } : null
+    );
+  }
+
+  SaveReschedule() {
+    const details = this.reschedule();
+
+    this.rescheduleError.set('');
+
+    if (!details || !details.date || !details.time) {
+      this.rescheduleError.set('Please select a doctor, date and available time.');
+      return;
+    }
+
+    if (this.savingReschedule()) {
+      return;
+    }
+
+    this.savingReschedule.set(true);
+
+    // Send PUT request to backend
+    this.http.put<Appointment>(
+      `${API_BASE_URL}/appointments/${details.appointmentId}`,
+      {
+        doctorId: details.doctorId,
+        startTime: `${details.date}T${details.time}:00`
+      }
+    ).subscribe({
+
+      // Rescheduling successful
+      next: () => {
+        this.savingReschedule.set(false);
+        this.CloseReschedule();
+
+        this.rescheduleSuccess.set('Appointment rescheduled successfully.');
+
+        // Refresh appointment list and booking availability
+        this.GetBookingsList();
+        this.GetAvailability();
+      },
+
+      // Handle errors
+      error: (error) => {
+        this.savingReschedule.set(false);
+
+        this.rescheduleError.set(
+          typeof error.error === 'string'
+            ? error.error
+            : error.error?.title || 'Failed to reschedule appointment.'
+        );
+      }
+    });
+  }
+
+  CloseReschedule() {
+    this.reschedule.set(null);
+    this.rescheduleSlots.set([]);
+    this.rescheduleError.set('');
   }
 }

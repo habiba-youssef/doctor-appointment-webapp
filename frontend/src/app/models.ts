@@ -37,3 +37,10 @@ export enum AppointmentType {
     FollowUp = 1,
     Procedure = 2
 }
+
+export interface RescheduleForm {
+  appointmentId: number;
+  doctorId: number;
+  date: string;
+  time: string | null;
+}

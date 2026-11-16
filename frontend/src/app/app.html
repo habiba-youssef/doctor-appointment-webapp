@@ -42,6 +42,7 @@
 			<th>Gender</th>
 			<th>Consultation Fee</th>
 			<th>Action</th>
+
 		</tr>
 		</thead>
 
@@ -281,7 +282,14 @@
 				{{ cancellationError() }}
 			</p>
 		}
-		
+
+		<!-- Rescheduling success -->
+		@if (rescheduleSuccess()) {
+			<p class="success-message" role="status">
+			{{ rescheduleSuccess() }}
+			</p>
+		}
+
 		<table border="1">
 		<thead>
 			<tr>
@@ -290,7 +298,7 @@
 			<th>Date</th>
 			<th>Time</th>
 			<th>Appointment Type</th>
-			<th>Action</th>
+			<th colspan="2">Action</th>
 			</tr>
 		</thead>
 
@@ -303,9 +311,117 @@
 			<td>{{appointment.startTime.slice(11, 16)}}</td>
 			<td>{{ getAppointmentType(appointment.type) }}</td>
 			<td>
+			    <button type="button" (click)="StartReschedule(appointment)">Reschedule</button>
+			</td>
+			<td>
 				<button type="button" (click)="CancelAppointment(appointment.id)">Cancel</button>
 			</td>
 			</tr>
+
+			<!-- Show form only for the selected appointment -->
+			@if (reschedule()?.appointmentId === appointment.id) {
+
+			<tr class="reschedule-row">
+				<td colspan="6">
+
+				<h3>Reschedule Appointment #{{ appointment.id }}</h3>
+
+				<p>
+					<strong>Patient:</strong>
+					{{ getPatientName(appointment.patientId) }}
+				</p>
+
+				<p>
+					<strong>Appointment Type:</strong>
+					{{ getAppointmentType(appointment.type) }}
+				</p>
+
+				<!-- Select doctor -->
+				<label for="reschedule-doctor">Doctor:</label>
+
+				<select
+					id="reschedule-doctor"
+					#newDoctor
+					[value]="reschedule()?.doctorId"
+					(change)="UpdateRescheduleDoctor(+newDoctor.value)">
+
+					@for (doctor of doctors(); track doctor.id) {
+					<option [value]="doctor.id">
+						Dr. {{ doctor.firstName }} {{ doctor.lastName }}
+					</option>
+					}
+
+				</select>
+
+				<!-- Select date -->
+				<label for="reschedule-date">New Date:</label>
+
+				<input
+					type="date"
+					id="reschedule-date"
+					#newDate
+					[value]="reschedule()?.date"
+					(change)="UpdateRescheduleDate(newDate.value)"
+				>
+
+				<!-- Check availability -->
+				<button
+					type="button"
+					[disabled]="savingReschedule()"
+					(click)="GetRescheduleAvailability()">
+					Check Availability
+				</button>
+
+				<!-- Available slots -->
+				<div class="reschedule-slots">
+
+					@for (slot of rescheduleSlots(); track slot.time) {
+					<button
+						type="button"
+						[disabled]="!slot.available || savingReschedule()"
+						[class.active]="reschedule()?.time === slot.time"
+						(click)="SelectRescheduleTime(slot)">
+
+						{{ slot.time }}
+
+					</button>
+					}
+
+				</div>
+
+				<!-- Selected time -->
+				@if (reschedule()?.time) {
+					<p>
+					<strong>Selected Time:</strong>
+					{{ reschedule()?.time }}
+					</p>
+				}
+
+				<!-- Error handling -->
+				@if (rescheduleError()) {
+					<p class="error-message" role="alert">
+					{{ rescheduleError() }}
+					</p>
+				}
+
+				<!-- Confirm and close -->
+				<button
+					type="button"
+					[disabled]="!reschedule()?.time || savingReschedule()"
+					(click)="SaveReschedule()">
+					{{ savingReschedule() ? 'Saving...' : 'Confirm Reschedule' }}
+				</button>
+
+				<button
+					type="button"
+					[disabled]="savingReschedule()"
+					(click)="CloseReschedule()">
+					Close
+				</button>
+
+				</td>
+			</tr>
+			}
 
 		} @empty {
 			<tr>

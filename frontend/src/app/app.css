@@ -125,7 +125,7 @@ table tbody tr.selected-doctor {
 th,
 td {
   padding: 5px;
-  text-align: left;
+  text-align: center;
   border: 1px solid #ddd;
 }
 
@@ -226,4 +226,37 @@ input[readonly] {
     background-color: #f0f0f0;
     color: #777777;
     cursor: not-allowed;
+}
+
+/* Rescheduling form */
+.reschedule-row td {
+  background-color: #eef5f8;
+  padding: 20px;
+}
+
+.reschedule-row h3 {
+  color: #013e54;
+}
+
+/* Rescheduling time slots */
+.reschedule-slots {
+  margin: 15px 0;
+}
+
+.reschedule-slots button {
+  padding: 10px;
+}
+
+.reschedule-slots button.active {
+  background-color: #2e8daf;
+  font-weight: bold;
+}
+
+/* Success message */
+.success-message {
+  color: #155724;
+  background-color: #d4edda;
+  padding: 12px;
+  border-radius: 5px;
+  margin: 15px 0;
 }

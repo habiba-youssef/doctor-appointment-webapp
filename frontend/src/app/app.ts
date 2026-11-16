@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http'; // Allows Angular to send HTTP requests to your backend API.
 import { firstValueFrom } from 'rxjs';    // For Step-by-Step Logic when Booking
 import { AppointmentType } from './models';
+import { HttpErrorResponse } from '@angular/common/http';   // identify what kind of HTTP error occurred
 
 const API_BASE_URL = 'http://localhost:5126';
 
@@ -212,20 +213,45 @@ export class App {
         return;
       }
 
-      // STEP 2: Register patient
-      const createdPatient = await firstValueFrom(
-        this.createPatient(patient)
-      );
+      // STEP 2: Find existing patient or register a new one
+      let patientId: number;
 
-      if (createdPatient.id == null) {
-        throw new Error('Patient ID was not returned.');
+      try {
+        // Search for the patient using Civil ID
+        const existingPatient = await firstValueFrom(
+          this.http.get<Patient>(`${API_BASE_URL}/patients/search?civilId=${encodeURIComponent(patient.civilId)}`)
+        );
+
+        // Patient exists - reuse their ID
+        if (existingPatient.id == null) {
+          throw new Error('Patient ID was not returned.');
+        }
+
+        patientId = existingPatient.id;
+
+      } catch (error) {
+
+        // Only register a new patient if the search returned 404
+        if (!(error instanceof HttpErrorResponse) || error.status !== 404) {
+          throw error;
+        }
+
+        const createdPatient = await firstValueFrom(
+          this.createPatient(patient)
+        );
+
+        if (createdPatient.id == null) {
+          throw new Error('Patient ID was not returned.');
+        }
+
+        patientId = createdPatient.id;
       }
 
       // STEP 3: Book appointment
       await firstValueFrom(
         this.http.post(`${API_BASE_URL}/appointments`, {
           doctorId: doctor.id,
-          patientId: createdPatient.id,
+          patientId,
           startTime: `${date}T${time}:00`,
           type: this.selectedType()
         })

@@ -132,7 +132,7 @@
 	</section>
 
 	<!-- SECTION 2: Available Time Slots -->
-	<div class = slotsButton>
+	<div class = "slotsButton">
 		<h2>Appointment Time Slots</h2>
 
 		<p>Select an available time slot:</p>
@@ -162,34 +162,81 @@
 
 		<form #patientForm
 			(submit)="BookAppointment({
-			firstName: firstName.value,
-			lastName: lastName.value,
-			civilId: civilId.value,
-			phoneNumber: phone.value,
-			dateOfBirth: dob.value,
-			gender: +gender.value
+				firstName: firstName.value,
+				lastName: lastName.value,
+				civilId: civilId.value,
+				phoneNumber: phone.value,
+				dateOfBirth: dob.value,
+				gender: +gender.value
 			}, patientForm); $event.preventDefault()"
 		>
 
-		<label for="firstName">First Name:</label>
-		<input type="text" id="firstName" #firstName placeholder="Enter First Name" required>
-		<br><br>
-
-		<label for="lastName">Surname:</label>
-		<input type="text" id="lastName" #lastName placeholder="Enter Last Name" required>
-		<br><br>
+		<!-- Search patient using Civil ID -->
+		<h3>Search Patient</h3>
 
 		<label for="civilId">Civil ID:</label>
-		<input type="text" id="civilId" #civilId placeholder="Civil ID (12 Digits)" required>
+		<input type="text" id="civilId" #civilId placeholder="Civil ID (12 Digits)" maxlength="12" (input)="resetPatientSearch()" required>
+
+		<button type="button"
+			(click)="searchPatient(civilId.value)">
+			Search
+		</button>
+
+		<hr>
+
+		@if (patientSearchStatus() === 'found') {
+			<p>Existing patient found!</p>
+		}
+
+		@if (patientSearchStatus() === 'notFound') {
+			<p>Patient not found. Please register.</p>
+		}
+
+		@if (patientSearchError()) {
+			<p class="error-message">{{ patientSearchError() }}</p>
+		}
+
+		<!-- Display details only after searching -->
+        <div [hidden]="patientSearchStatus() === 'idle'">
+
+			<h3>Patient Details</h3>
+
+			<label for="firstName">First Name:</label>
+			<input type="text" 
+				id="firstName" 
+				#firstName 
+				[value]="existingPatient()?.firstName ?? ''"
+                [readOnly]="patientSearchStatus() === 'found'"
+                required
+				>
+			<br><br>
+
+		<label for="lastName">Surname:</label>
+		<input type="text" 
+				id="lastName" 
+				#lastName 
+				[value]="existingPatient()?.lastName ?? ''"
+				[readOnly]="patientSearchStatus() === 'found'"
+				required>
 		<br><br>
 
 		<label for="phone">Phone Number:</label>
-		<input type="tel" id="phone" #phone placeholder="Enter phone number" required >
+		<input type="tel" 
+				id="phone" 
+				#phone 
+				[value]="existingPatient()?.phoneNumber ?? ''"
+                [readOnly]="patientSearchStatus() === 'found'"
+				required >
 		<br><br>
 
 		<label for="gender">Gender:</label>
-		<select id="gender" #gender required>
-			<option value="" disabled selected>Select Gender</option> 	// Clinic-103 fix frontend update
+		<select id="gender" 
+				#gender 
+				[value]="existingPatient()?.gender ?? ''"
+                [disabled]="patientSearchStatus() === 'found'"
+				required>
+			<!-- Clinic-103 fix frontend update -->
+			<option value="" disabled>Select Gender</option>
 			<option value="2">Male</option>
 			<option value="1">Female</option>
 		</select>
@@ -201,6 +248,8 @@
 			type="date"
 			id="dob"
 			#dob
+			[value]="existingPatient()?.dateOfBirth ?? ''"
+            [readOnly]="patientSearchStatus() === 'found'"
 			required
 		>
 
@@ -215,8 +264,8 @@
 		</p>
 		}
 		
+		</div>
 	</form>
-
 	</section>
 
 	<hr>

@@ -73,6 +73,13 @@ select:focus {
   outline-offset: 1px;
 }
 
+select:disabled {
+    background-color: #f0f0f0;
+    color: #777777;
+    cursor: not-allowed;
+    opacity: 1;
+}
+
 /* Buttons */
 button {
   background-color: #013e54;
@@ -212,4 +219,11 @@ tr:nth-child(even) {
     padding: 10px ;
     line-height: 1.6;
     text-align: center;
+}
+
+/* Style read-only patient information */
+input[readonly] {
+    background-color: #f0f0f0;
+    color: #777777;
+    cursor: not-allowed;
 }

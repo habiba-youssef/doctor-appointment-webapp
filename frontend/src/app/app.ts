@@ -36,6 +36,9 @@ export class App {
   cancellationError = signal('');   // clinic-105 fix
   appointments = signal<Appointment[]>([]);   // for appointments display
   AppointmentType = AppointmentType;
+  existingPatient = signal<Patient | null>(null);   // Stores the patient returned by the backend
+  patientSearchStatus = signal<'idle' | 'found' | 'notFound'>('idle');
+  patientSearchError = signal('');    // Stores any search error message
 
   constructor() {
     this.checkBackend();
@@ -370,4 +373,44 @@ export class App {
     });
   }
 
+  async searchPatient(civilId: string) {
+
+      // Clear previous search results
+      this.existingPatient.set(null);
+      this.patientSearchStatus.set('idle');
+      this.patientSearchError.set('');
+
+      // Check Civil ID is valid
+      if (!/^[0-9]{12}$/.test(civilId)) {
+          this.patientSearchError.set('Civil ID must contain exactly 12 digits.');
+          return;
+      }
+
+      try {
+          // Search for patient using Civil ID
+          const patient = await firstValueFrom(
+            this.http.get<Patient>(`${API_BASE_URL}/patients/search?civilId=${civilId}`)
+          );
+
+          // Patient exists - save their information
+          this.existingPatient.set(patient);
+          this.patientSearchStatus.set('found');
+
+      } catch (error) {
+          if (error instanceof HttpErrorResponse && error.status === 404) {
+              // Patient does not exist - allow registration
+              this.patientSearchStatus.set('notFound');
+
+          } else {
+              // Any other error
+              this.patientSearchError.set('Unable to search for patient.');
+          }
+      }
+  }
+
+  resetPatientSearch() {
+      this.existingPatient.set(null);
+      this.patientSearchStatus.set('idle');
+      this.patientSearchError.set('');
+  }
 }

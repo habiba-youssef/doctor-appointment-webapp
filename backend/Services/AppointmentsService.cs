@@ -46,6 +46,21 @@ public record AvailabilityResult(
     string? Error = null
 );
 
+public enum RescheduleStatus
+{
+    Rescheduled,
+    NotFound,
+    AlreadyCancelled,
+    AlreadyStarted,
+    Invalid,
+    Conflict
+}
+public record RescheduleResult(
+    RescheduleStatus Status,
+    Appointment? Appointment = null,
+    string? Error = null
+);
+
 public class AppointmentsService
 {
     private readonly ClinicDbContext _db;
@@ -68,9 +83,10 @@ public class AppointmentsService
         _clock = clock;
     }
     
-    // Create an appointment
-    public async Task<BookingResult> CreateAppointmentAsync(Appointment appointment)
+    // Validate Booking
+    private async Task<BookingResult?> ValidateAppointmentAsync(Appointment appointment, int? excludeAppointmentId = null)
     {
+        // Move existing booking validation checks here.
         // 1. Check doctor and patient exist
         bool doctorExists = await _db.Doctors.AnyAsync(d => d.Id == appointment.DoctorId);
         bool patientExists = await _db.Patients.AnyAsync(p => p.Id == appointment.PatientId);
@@ -188,6 +204,8 @@ public class AppointmentsService
         var existingAppointments = await _db.Appointments.AsNoTracking()
             .Where(a =>
                 !a.IsCancelled &&
+                (!excludeAppointmentId.HasValue ||
+                a.Id != excludeAppointmentId.Value) &&
                 (a.DoctorId == appointment.DoctorId ||
                 a.PatientId == appointment.PatientId) &&
                 a.StartTime >= dayStart &&
@@ -223,7 +241,45 @@ public class AppointmentsService
                 );
             }
         }
+        // Return null when all validation checks pass.
+        return null;
+    }
 
+    private static bool IsOverlapError(DbUpdateException error)
+    {
+        if (error.InnerException is not Npgsql.PostgresException pgError)
+            return false;
+
+        return
+            (pgError.SqlState == Npgsql.PostgresErrorCodes.UniqueViolation &&
+            pgError.ConstraintName == "IX_Appointments_DoctorId_StartTime")
+            ||
+            (pgError.SqlState == Npgsql.PostgresErrorCodes.ExclusionViolation &&
+            pgError.ConstraintName == "EX_Appointments_Doctor_NoOverlap");
+    }
+    
+    // Check if Appointment can be Cancelled/ rescheduled
+    private string? CancellationCheck(Appointment appointment)
+    {
+        if (appointment.IsCancelled)
+            return "Cancelled";
+
+        if (appointment.StartTime <= KuwaitTimeHelper.GetNow(_clock))
+            return "AlreadyStarted";
+
+        return null; // Appointment can be changed
+    }
+
+    // Create an appointment
+    public async Task<BookingResult> CreateAppointmentAsync(Appointment appointment)
+    {
+        // Check booking rules
+        var validationError = await ValidateAppointmentAsync(appointment);
+
+        if (validationError != null)
+        {
+            return validationError;
+        }
         // 7. Create and save the appointment
         appointment.Id = 0;
         appointment.IsCancelled = false;
@@ -234,20 +290,7 @@ public class AppointmentsService
         {
             await _db.SaveChangesAsync();
         }
-        catch (DbUpdateException error) when (
-            error.InnerException is Npgsql.PostgresException pgError &&
-        (
-            // Same doctor and exact same start time
-            (pgError.SqlState == Npgsql.PostgresErrorCodes.UniqueViolation &&
-            pgError.ConstraintName == "IX_Appointments_DoctorId_StartTime")
-
-            ||
-
-            // Same doctor and overlapping appointment time range
-            (pgError.SqlState == Npgsql.PostgresErrorCodes.ExclusionViolation &&
-            pgError.ConstraintName == "EX_Appointments_Doctor_NoOverlap")
-        )
-        )
+        catch (DbUpdateException error) when (IsOverlapError(error))
         {
             return new(
                 BookingStatus.Conflict,
@@ -262,6 +305,84 @@ public class AppointmentsService
         );
     }
 
+    // Reschedule existing appointment
+    public async Task<RescheduleResult> RescheduleAppointmentAsync(int id, int newDoctorId, DateTime newStartTime)
+    {
+        // 1. Find the existing appointment
+        var appointment = await _db.Appointments.FirstOrDefaultAsync(a => a.Id == id);
+
+        if (appointment == null)
+        {
+            return new(RescheduleStatus.NotFound, Error: "Appointment not found.");
+        }
+
+        var changeIssue = CancellationCheck(appointment);
+
+        if (changeIssue == "Cancelled")
+        {
+            return new( RescheduleStatus.AlreadyCancelled, Error: "Cannot reschedule a cancelled appointment.");
+        }
+
+        if (changeIssue == "AlreadyStarted")
+        {
+            return new(RescheduleStatus.AlreadyStarted, Error: "Cannot reschedule an appointment that has already started.");
+        }
+
+        // 4. Create a proposed appointment without changing the original
+        var proposedAppointment = new Appointment
+        {
+            DoctorId = newDoctorId,
+            PatientId = appointment.PatientId,
+            StartTime = newStartTime,
+            Type = appointment.Type
+        };
+
+        // 5. Validate new appointment details
+        // Exclude the original appointment from overlap checks
+        var validationError = await ValidateAppointmentAsync(proposedAppointment, appointment.Id);
+
+        if (validationError != null)
+        {
+            return new(
+                validationError.Status == BookingStatus.Conflict
+                    ? RescheduleStatus.Conflict
+                    : RescheduleStatus.Invalid,
+                Error: validationError.Error
+            );
+        }
+
+        // 6. Save original values in case the database rejects the change
+        var originalDoctorId = appointment.DoctorId;
+        var originalStartTime = appointment.StartTime;
+
+        // 7. Update the existing appointment
+        appointment.DoctorId = newDoctorId;
+        appointment.StartTime = newStartTime;
+
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException error) when (IsOverlapError(error))
+        {
+            // Restore original values in EF Core's tracked entity
+            appointment.DoctorId = originalDoctorId;
+            appointment.StartTime = originalStartTime;
+            _db.Entry(appointment).State = EntityState.Unchanged;
+
+            return new(
+                RescheduleStatus.Conflict,
+                Error: "Doctor already has an overlapping appointment."
+            );
+        }
+
+        // 8. Rescheduling successful
+        return new(
+            RescheduleStatus.Rescheduled,
+            Appointment: appointment
+        );
+    }
+
 	// Cancel an appointment
     public async Task<CancellationResult> CancelAppointmentAsync(int id, string? reason)
 	{
@@ -271,19 +392,19 @@ public class AppointmentsService
         // check if appointment exists
         if (appointment == null)
         {
-            return new(
-                CancellationStatus.NotFound,
-                Error: "Appointment not found."
-            );
+            return new(CancellationStatus.NotFound, Error: "Appointment not found.");
         }
 
-        // Check if already cancelled
-        if (appointment.IsCancelled)
+        var changeIssue = CancellationCheck(appointment);
+        
+        if (changeIssue == "Cancelled")
         {
-            return new(
-                CancellationStatus.AlreadyCancelled,
-                Error: "Appointment is already cancelled."
-            );
+            return new( CancellationStatus.AlreadyCancelled, Error: "Appointment is already cancelled.");
+        }
+
+        if (changeIssue == "AlreadyStarted")
+        {
+            return new(CancellationStatus.AlreadyStarted, Error: "Cannot cancel an appointment that has already started.");
         }
 
         // validate cancellation reason
@@ -292,15 +413,6 @@ public class AppointmentsService
             return new(
                 CancellationStatus.InvalidReason,
                 Error: "Cancellation reason is required."
-            );
-        }
-
-        // Prevent cancellation after appointment has started
-        if (appointment.StartTime <= KuwaitTimeHelper.GetNow(_clock))
-        {
-            return new(
-                CancellationStatus.AlreadyStarted,
-                Error: "Cannot cancel an appointment that has already started."
             );
         }
 

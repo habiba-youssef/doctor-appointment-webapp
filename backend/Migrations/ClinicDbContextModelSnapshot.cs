@@ -30,6 +30,9 @@ namespace DoctorsAppointment.Api.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("CancellationReason")
+                        .HasColumnType("text");
+
                     b.Property<int>("DoctorId")
                         .HasColumnType("integer");
 

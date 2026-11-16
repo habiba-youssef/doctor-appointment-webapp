@@ -23,7 +23,8 @@ public enum CancellationStatus
 {
     Cancelled,
     NotFound,
-    AlreadyCancelled
+    AlreadyCancelled,
+    InvalidReason 
 }
 public record CancellationResult(
     CancellationStatus Status,
@@ -261,7 +262,7 @@ public class AppointmentsService
     }
 
 	// Cancel an appointment
-    public async Task<CancellationResult> CancelAppointmentAsync(int id)
+    public async Task<CancellationResult> CancelAppointmentAsync(int id, string? reason)
 	{
 		// find the appointment by ID
         var appointment = await _db.Appointments.FirstOrDefaultAsync(a => a.Id == id); // instead of .Any() because it retrieves the actual object i.e. data
@@ -284,8 +285,19 @@ public class AppointmentsService
             );
         }
 
+        // validate cancellation reason
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return new(
+                CancellationStatus.InvalidReason,
+                Error: "Cancellation reason is required."
+            );
+        }
+
         // Cancel the appointment
         appointment.IsCancelled = true;
+        appointment.CancellationReason = reason.Trim();
+
 		await _db.SaveChangesAsync();
 
 		// Canellation successful

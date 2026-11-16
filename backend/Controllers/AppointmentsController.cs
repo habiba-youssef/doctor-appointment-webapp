@@ -6,6 +6,8 @@ using DoctorsAppointment.Api.Services;
 
 namespace DoctorsAppointment.Api.Controllers;
 
+public record CancelAppointmentRequest(string? Reason);
+
 [ApiController]
 [Route("appointments")]
 public class AppointmentsController : ControllerBase
@@ -46,16 +48,17 @@ public class AppointmentsController : ControllerBase
 
     // DELETE request to cancel an appointment
 	[HttpDelete("{id}")]
-	public async Task<IActionResult> CancelAppointment(int id)
+	public async Task<IActionResult> CancelAppointment(int id, [FromBody] CancelAppointmentRequest request)
 	{
 		// Ask the service to cancel the appointment
-		var result = await _appointmentService.CancelAppointmentAsync(id);
+		var result = await _appointmentService.CancelAppointmentAsync(id, request.Reason);
 		// Convert the service result into an HTTP response
 		return result.Status switch
 		{
 			CancellationStatus.Cancelled => NoContent(),
 			CancellationStatus.NotFound => NotFound(result.Error),
 			CancellationStatus.AlreadyCancelled => Conflict(result.Error),
+			CancellationStatus.InvalidReason => BadRequest(result.Error),
 			_ => throw new InvalidOperationException("Unexpected Cancellation Error.")
 		};
 	}

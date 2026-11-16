@@ -343,18 +343,34 @@ export class App {
     this.cancellationError.set('');
 
     // Send confirmation message
-    const confirmed = confirm(
-      'Are you sure you want to cancel this appointment?'
+    // const confirmed = confirm(
+    //   'Are you sure you want to cancel this appointment?'
+    // );
+
+    const reason = prompt(
+        'Are you sure you want to cancel this appointment?\n\nPlease enter a cancellation reason:'
     );
 
-    // If the user clicks Cancel, stop the function
-    if (!confirmed) {
-      return;
+    if (reason === null) {
+        return; // User clicked Cancel
     }
+
+    if (!reason.trim()) {
+        this.cancellationError.set('Cancellation reason is required.');
+        return;
+    }
+
+    // // If the user clicks Cancel, stop the function
+    // if (!confirmed) {
+    //   return;
+    // }
 
     // Send DELETE request to backend
     this.http.delete(
-      `${API_BASE_URL}/appointments/${appointmentId}`
+      `${API_BASE_URL}/appointments/${appointmentId}`,
+      {
+        body: { reason: reason.trim() }
+      }
     ).subscribe({
 
       // If cancellation is successful

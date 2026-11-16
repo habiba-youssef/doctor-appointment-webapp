@@ -15,6 +15,7 @@ public class Appointment
     public int PatientId { get; set; }
     public DateTime StartTime { get; set; }
     public bool IsCancelled { get; set; }
+    public string? CancellationReason { get; set; }
     public AppointmentType Type { get; set; } = AppointmentType.Consultation;
 }
 

@@ -28,6 +28,30 @@ public class PatientsController : ControllerBase
         return Ok(patients);
     }
 
+
+    // GET /patients/search - Search existing patients
+    [HttpGet("search")]
+    public async Task<IActionResult> SearchPatients([FromQuery] string? civilId)
+    {
+        // Validate Civil ID
+    	if (string.IsNullOrWhiteSpace(civilId) || civilId.Length != 12 || !civilId.All(char.IsDigit))
+		{
+			return BadRequest("Civil ID must be 12 digits.");
+		}
+		
+		// Search for existing patient
+		var patient = await _db.Patients
+			.AsNoTracking()
+			.FirstOrDefaultAsync(p => p.CivilId == civilId);
+
+		if (patient == null)
+		{
+			return NotFound("Patient not found.");
+		}
+
+		return Ok(patient);
+    }
+
 	// Post /patients — Register a new patient by receiving their details and adding them to PostgreSQL DB
 	[HttpPost]
 	public async Task<IActionResult> CreatePatient([FromBody] Patient patient)

@@ -255,7 +255,7 @@
 
 		<br><br>
 
-		<button type="submit">Book Appointment</button>
+		<button type="submit" [disabled]="patientSearchStatus() === 'idle'">Book Appointment</button>
 
 		<!-- Error Handling -->
 		@if (patientError()) {

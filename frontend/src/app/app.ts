@@ -187,6 +187,12 @@ export class App {
       return;
     }
 
+    // Make sure a Civil ID search was completed before booking
+    if (this.patientSearchStatus() === 'idle') {
+        this.patientError.set('Please search for the patient using their Civil ID first.');
+        return;
+    }
+
     // Send confirmation message
     const confirmed = confirm(
       'Appointment Information - Please check details \n\n' +

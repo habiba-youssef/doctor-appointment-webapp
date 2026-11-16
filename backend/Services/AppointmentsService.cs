@@ -136,6 +136,48 @@ public class AppointmentsService
             );
         }
 
+        // Check doctor's working schedule
+        var schedule = await _db.DoctorSchedules
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s =>
+                s.DoctorId == appointment.DoctorId &&
+                s.WorkingDays == appointment.StartTime.DayOfWeek
+            );
+
+        // Doctor has no schedule for this day
+        if (schedule == null)
+        {
+            return new(
+                BookingStatus.Invalid,
+                Error: "Doctor is not scheduled to work on this day."
+            );
+        }
+
+        // Check the entire appointment fits within working hours
+        if (TimeOnly.FromDateTime(appointment.StartTime) < schedule.StartTime ||
+            TimeOnly.FromDateTime(endTime) > schedule.EndTime)
+        {
+            return new(
+                BookingStatus.Invalid,
+                Error: "Appointment is outside the doctor's working hours."
+            );
+        }
+
+        // Check if doctor is on leave
+        bool isOnLeave = await _db.DoctorLeaves
+            .AnyAsync(l =>
+                l.DoctorId == appointment.DoctorId &&
+                l.LeaveDate == DateOnly.FromDateTime(appointment.StartTime)
+            );
+
+        if (isOnLeave)
+        {
+            return new(
+                BookingStatus.Invalid,
+                Error: "Doctor is on leave on this date."
+            );
+        }
+
         // 6. Check for overlapping appointments
         var dayStart = appointment.StartTime.Date;
         var dayEnd = dayStart.AddDays(1);

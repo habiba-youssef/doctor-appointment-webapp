@@ -7,6 +7,7 @@ using DoctorsAppointment.Api.Services;
 namespace DoctorsAppointment.Api.Controllers;
 
 public record CancelAppointmentRequest(string? Reason);
+public record RescheduleAppointmentRequest(int DoctorId, DateTime StartTime);
 
 [ApiController]
 [Route("appointments")]
@@ -45,6 +46,30 @@ public class AppointmentsController : ControllerBase
 			_ => throw new InvalidOperationException("Unexpected Booking Error")
 		};
 	}
+
+    // PUT request to reschedule an existing appointment
+    [HttpPut("{id}")]
+    public async Task<IActionResult> RescheduleAppointment(int id, [FromBody] RescheduleAppointmentRequest request)
+    {
+        // Ask the service to reschedule the appointment
+        var result = await _appointmentService.RescheduleAppointmentAsync(
+            id,
+            request.DoctorId,
+            request.StartTime
+        );
+
+        // Convert the service result into an HTTP response
+        return result.Status switch
+        {
+            RescheduleStatus.Rescheduled => Ok(result.Appointment),
+            RescheduleStatus.NotFound => NotFound(result.Error),
+            RescheduleStatus.AlreadyCancelled => Conflict(result.Error),
+            RescheduleStatus.AlreadyStarted => Conflict(result.Error),
+            RescheduleStatus.Invalid => BadRequest(result.Error),
+            RescheduleStatus.Conflict => Conflict(result.Error),
+            _ => throw new InvalidOperationException("Unexpected Reschedule Error.")
+        };
+    }
 
     // DELETE request to cancel an appointment
 	[HttpDelete("{id}")]

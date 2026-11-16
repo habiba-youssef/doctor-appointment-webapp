@@ -234,8 +234,18 @@ public class AppointmentsService
         }
         catch (DbUpdateException error) when (
             error.InnerException is Npgsql.PostgresException pgError &&
-            pgError.SqlState == Npgsql.PostgresErrorCodes.UniqueViolation &&
+        (
+            // Same doctor and exact same start time
+            (pgError.SqlState == Npgsql.PostgresErrorCodes.UniqueViolation &&
             pgError.ConstraintName == "IX_Appointments_DoctorId_StartTime")
+
+            ||
+
+            // Same doctor and overlapping appointment time range
+            (pgError.SqlState == Npgsql.PostgresErrorCodes.ExclusionViolation &&
+            pgError.ConstraintName == "EX_Appointments_Doctor_NoOverlap")
+        )
+        )
         {
             return new(
                 BookingStatus.Conflict,

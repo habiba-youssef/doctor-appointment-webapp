@@ -59,6 +59,7 @@ public class AppointmentsController : ControllerBase
 			CancellationStatus.NotFound => NotFound(result.Error),
 			CancellationStatus.AlreadyCancelled => Conflict(result.Error),
 			CancellationStatus.InvalidReason => BadRequest(result.Error),
+			CancellationStatus.AlreadyStarted => Conflict(result.Error),
 			_ => throw new InvalidOperationException("Unexpected Cancellation Error.")
 		};
 	}

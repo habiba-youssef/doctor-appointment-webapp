@@ -24,7 +24,8 @@ public enum CancellationStatus
     Cancelled,
     NotFound,
     AlreadyCancelled,
-    InvalidReason 
+    InvalidReason,
+    AlreadyStarted
 }
 public record CancellationResult(
     CancellationStatus Status,
@@ -291,6 +292,15 @@ public class AppointmentsService
             return new(
                 CancellationStatus.InvalidReason,
                 Error: "Cancellation reason is required."
+            );
+        }
+
+        // Prevent cancellation after appointment has started
+        if (appointment.StartTime <= KuwaitTimeHelper.GetNow(_clock))
+        {
+            return new(
+                CancellationStatus.AlreadyStarted,
+                Error: "Cannot cancel an appointment that has already started."
             );
         }
 

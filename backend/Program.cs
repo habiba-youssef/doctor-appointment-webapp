@@ -44,24 +44,29 @@ builder.Services.AddScoped<
 >();
 
 // Read JWT configuration
-var jwtKey = builder.Configuration["Jwt:Key"]
-    ?? throw new InvalidOperationException("JWT signing key is missing.");
 
-if (Encoding.UTF8.GetByteCount(jwtKey) < 32)
-    throw new InvalidOperationException("JWT key must be at least 32 bytes.");
-
-// Configure JWT authentication
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+    .AddJwtBearer();
+
+// Read JWT settings from the final application configuration
+builder.Services
+    .AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+    .Configure<IConfiguration>((options, config) =>
     {
+        var jwtKey = config["Jwt:Key"]
+            ?? throw new InvalidOperationException("JWT signing key is missing.");
+
+        if (Encoding.UTF8.GetByteCount(jwtKey) < 32)
+            throw new InvalidOperationException("JWT key must be at least 32 bytes.");
+
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidIssuer = config["Jwt:Issuer"],
 
             ValidateAudience = true,
-            ValidAudience = builder.Configuration["Jwt:Audience"],
+            ValidAudience = config["Jwt:Audience"],
 
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(
@@ -72,6 +77,7 @@ builder.Services
             ClockSkew = TimeSpan.FromSeconds(30)
         };
     });
+
 
 builder.Services.AddAuthorization();
 
@@ -217,3 +223,5 @@ app.UseAuthorization(); // Check what they are allowed to do
 app.MapControllers();
 
 app.Run();
+
+public partial class Program { }    // lets the integration test access your API's entry point

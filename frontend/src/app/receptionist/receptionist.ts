@@ -126,7 +126,6 @@ export class Receptionist {
       next: (response) => {this.doctors.set(
         response.sort((a, b) => a.specialty.localeCompare(b.specialty)) // sorting by speciality and alphabetically
       );
-        // console.log('Doctors received:', response);
       },
 
       error: (error) => {
@@ -179,7 +178,6 @@ export class Receptionist {
       // 4. Store the returned time slots
       next: (response) => {
         this.availabilitySlots.set(response);
-        // console.log('Availability:', response);
       },
 
       // errors handling
@@ -342,7 +340,6 @@ export class Receptionist {
     this.appointmentService.getAll()
     .subscribe({
       next: (response) => {
-        // console.log('Appointments received:', response);
         this.appointments.set(response.filter(appointment => !appointment.isCancelled)); // to hide canceled appointments
       },
 

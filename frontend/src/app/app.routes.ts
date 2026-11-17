@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { Receptionist } from './receptionist/receptionist';
 import { Login } from './login/login';
+import { receptionistGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
   {
@@ -16,6 +17,7 @@ export const routes: Routes = [
 
   {
     path: 'receptionist',
-    component: Receptionist
+    component: Receptionist,
+    canActivate: [receptionistGuard]
   }
 ];

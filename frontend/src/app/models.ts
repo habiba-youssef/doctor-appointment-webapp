@@ -44,3 +44,18 @@ export interface RescheduleForm {
   date: string;
   time: string | null;
 }
+
+export enum AppointmentStatus {
+  Booked = 0,
+  Completed = 1,
+  NoShow = 2
+}
+
+export interface DoctorAppointment {
+  id: number;
+  patientId: number;
+  patientName: string;
+  startTime: string;
+  type: AppointmentType;
+  status: AppointmentStatus;
+}

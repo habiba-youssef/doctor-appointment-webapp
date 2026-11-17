@@ -22,3 +22,28 @@ export const receptionistGuard: CanActivateFn = () => {
   // Otherwise, redirect to login
   return router.createUrlTree(['/login']);
 };
+
+// Protect doctor-specific pages
+export const doctorGuard: CanActivateFn = (route) => {
+  
+  const authService = inject(AuthService);
+  const router = inject(Router);
+
+  const token = authService.getToken();
+  const role = authService.getRole();
+  const loggedInDoctorId = authService.getDoctorId();
+
+  // Doctor ID requested in the URL
+  const requestedDoctorId = Number(route.paramMap.get('id'));
+
+  if (
+    token &&
+    role === 'Doctor' &&
+    loggedInDoctorId !== null &&
+    requestedDoctorId === loggedInDoctorId
+  ) {
+    return true;
+  }
+
+  return router.createUrlTree(['/login']);
+};

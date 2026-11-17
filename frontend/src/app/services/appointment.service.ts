@@ -2,7 +2,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 
-import { Appointment, AppointmentType, TimeSlot } from '../models';
+import { Appointment, AppointmentType, TimeSlot, DoctorAppointment, AppointmentStatus } from '../models';
 import { environment } from '../../environments/environment';
 
 @Injectable({
@@ -70,5 +70,16 @@ export class AppointmentService {
       `${environment.apiUrl}/appointments/${id}`,
       { doctorId, startTime }
     );
+  }
+
+  // Retrieve appointments belonging to a specific doctor
+  getDoctorAppointments(doctorId: number, date: string) {
+    return this.http.get<DoctorAppointment[]>(`${environment.apiUrl}/doctors/${doctorId}/appointments`, { params: { date } });
+  }
+
+  // Mark an appointment Completed or No-show
+  updateDoctorStatus(doctorId: number, appointmentId: number, status: AppointmentStatus)
+  {
+    return this.http.put<void>(`${environment.apiUrl}/doctors/${doctorId}/appointments/${appointmentId}/status`, { status });
   }
 }

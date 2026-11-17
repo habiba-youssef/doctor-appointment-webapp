@@ -19,6 +19,7 @@ public class ClinicDbContext : DbContext
     // Doctor schedules and leave
     public DbSet<DoctorSchedule> DoctorSchedules => Set<DoctorSchedule>();
     public DbSet<DoctorLeave> DoctorLeaves => Set<DoctorLeave>();
+    public DbSet<ClinicUser> ClinicUsers => Set<ClinicUser>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -70,5 +71,16 @@ public class ClinicDbContext : DbContext
         modelBuilder.Entity<DoctorLeave>()
             .HasIndex(l => new { l.DoctorId, l.LeaveDate })
             .IsUnique();
-    }
+
+        // Each username must be unique
+        modelBuilder.Entity<ClinicUser>()
+            .HasIndex(u => u.Username)
+            .IsUnique();
+
+        // Connect doctor accounts to their doctor record
+        modelBuilder.Entity<ClinicUser>()
+            .HasOne<Doctor>()
+            .WithMany()
+            .HasForeignKey(u => u.DoctorId);
+            }
 }

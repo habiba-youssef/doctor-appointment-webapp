@@ -59,6 +59,39 @@ namespace DoctorsAppointment.Api.Migrations
                     b.ToTable("Appointments");
                 });
 
+            modelBuilder.Entity("DoctorsAppointment.Api.Models.ClinicUser", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("DoctorId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DoctorId");
+
+                    b.HasIndex("Username")
+                        .IsUnique();
+
+                    b.ToTable("ClinicUsers");
+                });
+
             modelBuilder.Entity("DoctorsAppointment.Api.Models.Doctor", b =>
                 {
                     b.Property<int>("Id")
@@ -191,6 +224,13 @@ namespace DoctorsAppointment.Api.Migrations
                         .HasForeignKey("PatientId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("DoctorsAppointment.Api.Models.ClinicUser", b =>
+                {
+                    b.HasOne("DoctorsAppointment.Api.Models.Doctor", null)
+                        .WithMany()
+                        .HasForeignKey("DoctorId");
                 });
 
             modelBuilder.Entity("DoctorsAppointment.Api.Models.DoctorLeave", b =>

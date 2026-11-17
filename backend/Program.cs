@@ -5,6 +5,10 @@ using System.Globalization;
 using DoctorsAppointment.Api.Models;
 using DoctorsAppointment.Api.Services;
 using CsvHelper.Configuration;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<ClinicDbContext>(options =>
@@ -31,6 +35,44 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod();
     });
 });
+
+
+builder.Services.AddScoped<
+    IPasswordHasher<ClinicUser>,
+    PasswordHasher<ClinicUser>
+>();
+
+// Read JWT configuration
+var jwtKey = builder.Configuration["Jwt:Key"]
+    ?? throw new InvalidOperationException("JWT signing key is missing.");
+
+if (Encoding.UTF8.GetByteCount(jwtKey) < 32)
+    throw new InvalidOperationException("JWT key must be at least 32 bytes.");
+
+// Configure JWT authentication
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+
+            ValidateAudience = true,
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwtKey)
+            ),
+
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.FromSeconds(30)
+        };
+    });
+
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
@@ -106,6 +148,49 @@ using (var scope = app.Services.CreateScope())
         db.DoctorLeaves.AddRange(leaves);
         db.SaveChanges();
     }
+
+    // Seed demo user accounts
+    var hasher = scope.ServiceProvider
+        .GetRequiredService<IPasswordHasher<ClinicUser>>();
+
+    if (!db.ClinicUsers.Any(u => u.Username == "receptionist"))
+    {
+        var password = builder.Configuration["SeedUsers:ReceptionistPassword"]
+            ?? throw new InvalidOperationException("Receptionist seed password missing.");
+
+        var user = new ClinicUser
+        {
+            Username = "receptionist",
+            Role = "Receptionist"
+        };
+
+        user.PasswordHash = hasher.HashPassword(user, password);
+        db.ClinicUsers.Add(user);
+    }
+
+    if (!db.ClinicUsers.Any(u => u.Username == "doctor"))
+    {
+        var password = builder.Configuration["SeedUsers:DoctorPassword"]
+            ?? throw new InvalidOperationException("Doctor seed password missing.");
+
+        var doctorId = db.Doctors
+            .OrderBy(d => d.Id)
+            .Select(d => d.Id)
+            .First();
+
+        var user = new ClinicUser
+        {
+            Username = "doctor",
+            Role = "Doctor",
+            DoctorId = doctorId
+        };
+
+        user.PasswordHash = hasher.HashPassword(user, password);
+        db.ClinicUsers.Add(user);
+    }
+
+    db.SaveChanges();
+
 }
 
 
@@ -120,7 +205,8 @@ app.UseHttpsRedirection();
 app.UseRouting(); // built-in middleware that evaluates an incoming HTTP request and matches it to a specific executable endpoint
 app.UseCors("AllowAngular"); // Allows your Angular frontend to access your backend from a different origin using CORS policy
 
-app.UseAuthorization();
+app.UseAuthentication(); // Identify who is making the request
+app.UseAuthorization(); // Check what they are allowed to do
 
 app.MapControllers();
 

@@ -3,10 +3,12 @@
 using Microsoft.AspNetCore.Mvc;
 using DoctorsAppointment.Api.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace DoctorsAppointment.Api.Controllers;
 
 [ApiController]
+[Authorize(Roles = "Receptionist,Doctor")]
 [Route("doctors")]
 public class DoctorsController : ControllerBase
 {

@@ -3,6 +3,7 @@
 using Microsoft.AspNetCore.Mvc;
 using DoctorsAppointment.Api.Models;
 using DoctorsAppointment.Api.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace DoctorsAppointment.Api.Controllers;
 
@@ -10,6 +11,7 @@ public record CancelAppointmentRequest(string? Reason);
 public record RescheduleAppointmentRequest(int DoctorId, DateTime StartTime);
 
 [ApiController]
+[Authorize(Roles = "Receptionist")]
 [Route("appointments")]
 public class AppointmentsController : ControllerBase
 {

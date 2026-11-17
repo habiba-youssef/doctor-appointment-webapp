@@ -79,8 +79,9 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     // Get our database context
-    var db = scope.ServiceProvider
-        .GetRequiredService<ClinicDbContext>();
+    var db = scope.ServiceProvider.GetRequiredService<ClinicDbContext>();
+    // Create/update database tables before seeding
+    db.Database.Migrate();
 
     // 1. Seed Doctors
     if (!db.Doctors.Any())

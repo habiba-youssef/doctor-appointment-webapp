@@ -1,12 +1,14 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient , withInterceptors} from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
+import { authInterceptor } from './interceptors/auth.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
-    provideHttpClient() // allows Angular to send GET, POST, PUT, and DELETE requests to your backend
+    // Register HTTP interceptor
+    provideHttpClient(withInterceptors([authInterceptor])) // allows Angular to send GET, POST, PUT, and DELETE requests to your backend
   ]
 };

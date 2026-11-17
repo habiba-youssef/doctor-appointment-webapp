@@ -1,0 +1,33 @@
+<section class="login-container">
+  <h1>Clinic Login</h1>
+
+  <form (submit)="login(username.value, password.value); $event.preventDefault()">
+    <label for="username">Username:</label>
+    <input
+      id="username"
+      type="text"
+      #username
+      autocomplete="username"
+      required
+    >
+
+    <label for="password">Password:</label>
+    <input
+      id="password"
+      type="password"
+      #password
+      autocomplete="current-password"
+      required
+    >
+
+    <button type="submit" [disabled]="loggingIn()">
+      {{ loggingIn() ? 'Logging in...' : 'Log In' }}
+    </button>
+
+    @if (loginError()) {
+      <p class="error-message" role="alert">
+        {{ loginError() }}
+      </p>
+    }
+  </form>
+</section>

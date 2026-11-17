@@ -20,6 +20,7 @@ builder.Services.AddDbContext<ClinicDbContext>(options =>
 // Add services to the container.
 builder.Services.AddScoped<AppointmentsService>();
 builder.Services.AddControllers();
+builder.Services.AddProblemDetails();   // for error handling
 builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -200,6 +201,10 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
+
+// Handle unexpected errors and empty error responses
+app.UseExceptionHandler();
+app.UseStatusCodePages();
 
 app.UseHttpsRedirection();
 

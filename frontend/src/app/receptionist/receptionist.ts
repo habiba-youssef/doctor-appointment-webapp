@@ -56,6 +56,48 @@ export class Receptionist {
   rescheduleSuccess = signal('');
   savingReschedule = signal(false);
 
+
+
+  // Extract a readable error message from the backend
+  private getApiErrorMessage(error: unknown, fallback: string): string {
+
+    if (error instanceof HttpErrorResponse) {
+      const body = error.error;
+
+      // Handle old plain-text errors
+      if (typeof body === 'string') {
+        return body || fallback;
+      }
+
+      if (body && typeof body === 'object') {
+        const problem = body as {
+          errors?: Record<string, string[]>;
+          detail?: string;
+          title?: string;
+        };
+
+        // 1. ValidationProblem() - field-specific messages
+        const validationMessage = problem.errors
+          ? Object.values(problem.errors).flat().join(' ')
+          : '';
+
+        // 2. Problem() - general message
+        // 3. Title or default message
+        return validationMessage ||
+               problem.detail ||
+               problem.title ||
+               fallback;
+      }
+    }
+
+    // Handle normal JavaScript errors
+    if (error instanceof Error) {
+      return error.message;
+    }
+
+    return fallback;
+  }
+
   constructor() {
     this.checkBackend();
   }
@@ -143,13 +185,8 @@ export class Receptionist {
       // errors handling
       error: (error) => {
         this.availabilitySlots.set([]);
-
-        this.availabilityError.set(
-          typeof error.error === 'string'
-            ? error.error
-            : error.error?.title || 'Unable to retrieve availability.'
-        );
-        // console.error('Error:', error);
+          this.availabilityError.set(this.getApiErrorMessage(error, 'Unable to retrieve availability.')
+          );
       }
 
     });
@@ -292,12 +329,9 @@ export class Receptionist {
       this.GetBookingsList();
       this.GetPatientsList();
 
-    } catch (error: any) {
-      // Handle errors from any step
+    } catch (error: unknown) {
       this.patientError.set(
-        typeof error.error === 'string'
-          ? error.error
-          : error.error?.title || error.message || 'Booking failed.'
+        this.getApiErrorMessage(error,'Booking failed.')
       );
 
       this.GetAvailability();
@@ -380,11 +414,7 @@ export class Receptionist {
       error: (error) => {
         // Store the backend error so it can be displayed in the UI
         this.cancellationError.set(
-          typeof error.error === 'string'
-            ? error.error
-            : error.error?.detail ||
-              error.error?.title ||
-              'Failed to cancel appointment.'
+          this.getApiErrorMessage(error, 'Failed to cancel appointment.')
         );
 
         // Refresh the list to show the actual appointment state
@@ -423,7 +453,7 @@ export class Receptionist {
 
           } else {
               // Any other error
-              this.patientSearchError.set('Unable to search for patient.');
+              this.patientSearchError.set(this.getApiErrorMessage(error, 'Unable to search for patient.'));
           }
       }
   }
@@ -496,11 +526,7 @@ export class Receptionist {
           return;
         }
 
-        this.rescheduleError.set(
-          typeof error.error === 'string'
-            ? error.error
-            : error.error?.title || 'Unable to retrieve availability.'
-        );
+        this.rescheduleError.set(this.getApiErrorMessage(error, 'Unable to retrieve availability.'));
       }
     });
   }
@@ -569,11 +595,7 @@ export class Receptionist {
       error: (error) => {
         this.savingReschedule.set(false);
 
-        this.rescheduleError.set(
-          typeof error.error === 'string'
-            ? error.error
-            : error.error?.title || 'Failed to reschedule appointment.'
-        );
+        this.rescheduleError.set(this.getApiErrorMessage(error, 'Failed to reschedule appointment.'));
       }
     });
   }

@@ -22,6 +22,38 @@ public class AppointmentsController : ControllerBase
 		_appointmentService = appointmentService;
 	}
 
+	// Convert an invalid field into a ValidationProblem response
+    private IActionResult ValidationError(string field, string? error)
+    {
+        ModelState.AddModelError(
+            field,
+            error ?? "Invalid value."
+        );
+
+        return ValidationProblem(ModelState);
+    }
+
+	// Identify the field associated with a service validation error
+    private static string GetAppointmentErrorField(string? error)
+    {
+        return error switch
+        {
+            "Invalid appointment type." => "type",
+
+            "Appointments must start at :00, :15, :30 or :45" or
+            "Appointments are only available between 08:00 and 16:00." or
+            "Appointments are only available Sunday to Thursday." or
+            "Cannot book an appointment in the past." or
+            "Appointment is outside the doctor's working hours." or
+            "Doctor is not scheduled to work on this day." or
+            "Doctor is on leave on this date."
+                => "startTime",
+
+            // The service doesn't distinguish which ID is invalid
+            _ => "appointment"
+        };
+    }
+
     // GET request to retrieve appointments
     [HttpGet]
     public async Task<IActionResult> GetAppointments([FromQuery] int? doctorId, [FromQuery] DateOnly? date)
@@ -43,8 +75,8 @@ public class AppointmentsController : ControllerBase
 		return result.Status switch
 		{
 			BookingStatus.Created => StatusCode(201, result.Appointment),
-			BookingStatus.Invalid => BadRequest(result.Error),
-			BookingStatus.Conflict => Conflict(result.Error),
+			BookingStatus.Invalid => ValidationError(GetAppointmentErrorField(result.Error), result.Error),
+			BookingStatus.Conflict => Problem(statusCode: 409, title: "Appointment conflict", detail: result.Error),
 			_ => throw new InvalidOperationException("Unexpected Booking Error")
 		};
 	}
@@ -64,11 +96,11 @@ public class AppointmentsController : ControllerBase
         return result.Status switch
         {
             RescheduleStatus.Rescheduled => Ok(result.Appointment),
-            RescheduleStatus.NotFound => NotFound(result.Error),
-            RescheduleStatus.AlreadyCancelled => Conflict(result.Error),
-            RescheduleStatus.AlreadyStarted => Conflict(result.Error),
-            RescheduleStatus.Invalid => BadRequest(result.Error),
-            RescheduleStatus.Conflict => Conflict(result.Error),
+            RescheduleStatus.NotFound => Problem(statusCode: 404, title: "Appointment not found", detail: result.Error),
+            RescheduleStatus.AlreadyCancelled => Problem(statusCode: 409, title: "Appointment already cancelled", detail: result.Error),
+            RescheduleStatus.AlreadyStarted => Problem(statusCode: 409, title: "Appointment already started", detail: result.Error),
+            RescheduleStatus.Invalid => ValidationError( GetAppointmentErrorField(result.Error), result.Error),
+            RescheduleStatus.Conflict => Problem(statusCode: 409, title: "Rescheduling conflict", detail: result.Error),
             _ => throw new InvalidOperationException("Unexpected Reschedule Error.")
         };
     }
@@ -83,14 +115,13 @@ public class AppointmentsController : ControllerBase
 		return result.Status switch
 		{
 			CancellationStatus.Cancelled => NoContent(),
-			CancellationStatus.NotFound => NotFound(result.Error),
-			CancellationStatus.AlreadyCancelled => Conflict(result.Error),
-			CancellationStatus.InvalidReason => BadRequest(result.Error),
-			CancellationStatus.AlreadyStarted => Conflict(result.Error),
+			CancellationStatus.NotFound => Problem(statusCode: 404, title: "Appointment not found", detail: result.Error),
+			CancellationStatus.AlreadyCancelled => Problem(statusCode: 409, title: "Appointment already cancelled", detail: result.Error),
+			CancellationStatus.InvalidReason => ValidationError("reason", result.Error),
+			CancellationStatus.AlreadyStarted => Problem(statusCode: 409, title: "Appointment already started", detail: result.Error),
 			_ => throw new InvalidOperationException("Unexpected Cancellation Error.")
 		};
 	}
-
 
 	// GET request to retrieve Doctor's Avaliability
 	[HttpGet("availability")]
@@ -103,10 +134,10 @@ public class AppointmentsController : ControllerBase
 		return result.Status switch
 		{
 			AvailabilityStatus.Valid => Ok(result.Slots),
-			AvailabilityStatus.InvalidDoc => NotFound(result.Error),
-			AvailabilityStatus.InvalidDate => BadRequest(result.Error),
-			AvailabilityStatus.InvalidType => BadRequest(result.Error),
-			AvailabilityStatus.Closed => BadRequest(result.Error),
+			AvailabilityStatus.InvalidDoc => Problem(statusCode: 404, title: "Doctor not found", detail: result.Error),
+			AvailabilityStatus.InvalidDate => ValidationError("date", result.Error),
+			AvailabilityStatus.InvalidType => ValidationError("type", result.Error),
+			AvailabilityStatus.Closed => ValidationError("date", result.Error),
 			_ => throw new InvalidOperationException("Unexpected availability result.")
 		};
 	}

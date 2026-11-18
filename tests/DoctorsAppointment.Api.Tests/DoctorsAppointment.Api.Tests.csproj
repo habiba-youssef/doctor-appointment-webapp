@@ -25,9 +25,4 @@
     <ProjectReference Include="..\..\backend\DoctorsAppointment.Api.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <!-- Temporarily exclude old Stage 1 tests -->
-    <Compile Remove="UnitTest1.cs" />
-  </ItemGroup>
-
 </Project>

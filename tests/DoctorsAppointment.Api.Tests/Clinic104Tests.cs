@@ -1,7 +1,8 @@
 
-using System;
 using Xunit;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
 using DoctorsAppointment.Api.Controllers;
 using DoctorsAppointment.Api.Data;
 using DoctorsAppointment.Api.Models;
@@ -9,17 +10,22 @@ using DoctorsAppointment.Api.Models;
 public class Clinic104Tests
 {
     [Fact]
-    public void CLINIC104()
+    public async Task CLINIC104()
     {
-        // ARRANGE: Create an empty DataStore
-        var store = new DataStore(new[]
-        {
-            new Doctor { Id = 1 }
-        });
+        // ARRANGE 1: Create a temporary in-memory database
+        var options = new DbContextOptionsBuilder<ClinicDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
 
-        var controller = new PatientsController(store);
+        using var db = new ClinicDbContext(options);
 
-        // Create first patient
+        // ARRANGE 2: Create the PatientsController
+        var controller = new PatientsController(
+            db,
+            TimeProvider.System
+        );
+
+        // ARRANGE 3: Create first patient
         var patient1 = new Patient
         {
             FirstName = "Noura",
@@ -30,7 +36,7 @@ public class Clinic104Tests
             Gender = GenderOption.Female
         };
 
-        // Create second patient with the SAME Civil ID
+        // Create another patient with the SAME Civil ID
         var patient2 = new Patient
         {
             FirstName = "Noura",
@@ -41,18 +47,29 @@ public class Clinic104Tests
             Gender = GenderOption.Female
         };
 
-        // ACT: Register both patients
-        var result1 = controller.CreatePatient(patient1);
-        var result2 = controller.CreatePatient(patient2);
+        // ACT 1: Register the first patient
+        var result1 = await controller.CreatePatient(patient1);
 
-        // ASSERT: First registration should succeed
-        var response1 = Assert.IsType<ObjectResult>(result1);
+        // ASSERT 1: First registration succeeds (201)
+        var response1 = Assert.IsAssignableFrom<ObjectResult>(result1);
         Assert.Equal(201, response1.StatusCode);
 
-        // Second registration should fail with 409 Conflict
-        Assert.IsType<ConflictObjectResult>(result2);
+        // ACT 2: Register the second patient
+        var result2 = await controller.CreatePatient(patient2);
 
-        // Only one patient should be saved
-        Assert.Single(store.Patients);
+        // ASSERT 2: Second registration is rejected
+        var response2 = Assert.IsAssignableFrom<ObjectResult>(result2);
+
+        // Verify ProblemDetails response
+        var problem = Assert.IsType<ProblemDetails>(response2.Value);
+
+        Assert.Equal(409, response2.StatusCode ?? problem.Status);
+
+        Assert.Equal("Duplicate patient", problem.Title);
+
+        Assert.Equal("A patient with this Civil ID already exists.", problem.Detail);
+
+        // ASSERT 3: Only one patient was saved
+        Assert.Single(db.Patients);
     }
 }

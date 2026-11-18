@@ -1,24 +1,31 @@
-# AI Usage — Clinic Appointment Booking
+## Stage 2: Production Readiness
 
-## 1. AI tools used
+### 1. AI Tools Used
 
-I used **ChatGPT (OpenAI)** during this project, mainly for **learning and project planning**, as well as occasional implementation guidance and debugging. I had not previously worked with **C# or TypeScript**, so I used AI to understand the syntax, frameworks, and code I was writing rather than just obtain solutions.
+I continued using **ChatGPT (OpenAI)** throughout Stage 2, mainly to help me learn and understand new concepts, troubleshoot problems, and guide me through unfamiliar development tools.
 
-## 2. What I asked
+Since Stage 2 introduced more advanced requirements, I used AI to explain concepts I had not worked with before, understand why certain approaches were needed, and help me implement them correctly.
 
-Most of my prompts were **explanation-based**. I frequently asked what a particular line or method did, why it was needed, and how it connected to the rest of the application. My questions generally fell into these areas:
+### 2. What I Asked
 
-- **Planning:** Breaking the project into small, achievable objectives, deciding the order of implementation, and starting with a basic project structure before adding features. I initially asked for a work breakdown without code so I could understand the overall task first.
-- **Learning the technologies:** Understanding Angular, ASP.NET Core, Node.js, C#, and TypeScript, including controllers, routes, constructors, interfaces, Angular signals, and HTTP requests.
-- **Connecting the application:** Understanding how the Angular frontend communicates with the .NET backend, what CORS and routing do, and how information moves from a user action to an API response.
-- **Implementation and debugging:** Asking about booking validation, error responses, unit testing, and problems encountered while running the frontend or backend.
+Most of my questions remained **explanation-based**, as I wanted to understand the reasoning behind the code and the technologies I was using.
 
-For example, I asked how a controller is defined, what `UseRouting()` and `UseCors()` do, why `ng serve` failed, and how the frontend and backend should be connected. These were usually follow-up questions to make sure I understood suggested code before proceeding.
+My questions mainly focused on:
 
-## 3. What I kept, changed, or discarded, and why
+- **Understanding new concepts:** Learning about race conditions, database concurrency, Entity Framework Core, migrations, dependency injection, authentication, authorization, and other concepts introduced in Stage 2. I frequently asked for explanations of how these worked and why they were necessary.
+- **Docker setup:** Understanding what Docker, containers, Dockerfiles, and Docker Compose are, how they work together, and how to configure the frontend, backend, and database to run together.
+- **Commands and development tools:** Asking for guidance on terminal commands, including Docker commands, database migrations, running tests, and troubleshooting errors. I often asked what specific commands did before executing them.
+- **Code understanding and debugging:** Asking for explanations of unfamiliar C# and TypeScript syntax, understanding error messages, and identifying why certain parts of the application were not behaving as expected.
+- **Testing:** Understanding the differences between unit, integration, and end-to-end testing, how testing tools work, and how to test more complex scenarios such as simultaneous booking requests.
 
-**Kept:** I followed the general step-by-step development approach and used explanations of backend controllers, Angular state and HTTP calls, validation rules, and xUnit testing to guide the implementation. This helped me build the application in manageable stages and understand how its parts work together.
+I often asked follow-up questions to simplify explanations or go through individual steps in more detail until I understood how they related to my application.
 
-**Changed:** I often simplified suggestions to better suit the size of the project. For example, I kept the Angular HTTP calls in `app.ts` instead of introducing separate services immediately, and I used a doctor-selection table rather than a basic dropdown so more information was visible. I also adjusted the booking sequence to check availability before creating a patient record.
+### 3. What I Kept, Changed, or Discarded, and Why
 
-**Discarded or deferred:** I chose not to add some suggested complexity, such as additional service layers or a patient-deletion rollback workflow. More extensive refactoring remains a possible improvement.
+**Kept:** I used AI explanations to improve my understanding of unfamiliar technologies and development concepts. I also followed step-by-step guidance when setting up Docker, configuring the development environment, and learning the commands needed to build, run, and test the application.
+
+**Changed:** I adapted suggestions to match my existing project structure and implementation. Rather than applying every suggested solution directly, I worked through the logic, asked questions where something was unclear, and adjusted the approach as I learned more. For example, I moved from the original in-memory `DataStore` and application-level locking to PostgreSQL and database-level concurrency protection.
+
+**Discarded or deferred:** I avoided adding unnecessary complexity when a simpler approach was sufficient for the assessment. Where suggestions involved additional features or approaches beyond the immediate requirements, I focused on understanding and implementing the core functionality first.
+
+Overall, I used AI primarily as a **learning and troubleshooting resource**, helping me understand the concepts, tools, commands, and implementation decisions involved in developing a more production-ready application.

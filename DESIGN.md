@@ -39,5 +39,3 @@ If I were starting again, I would separate the booking logic from the controller
 ## 3. Current Limitations
 
 - The **doctor-overlap rule** is protected by PostgreSQL constraints, but the **patient-overlap rule** is currently checked in application code. Simultaneous requests for the same patient with different doctors may therefore need additional database-level concurrency protection.
-
-These items are separate from the five Part A bug fixes and should also be reflected in the pull request's unfinished-work notes.

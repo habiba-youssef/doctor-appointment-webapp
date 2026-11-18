@@ -60,7 +60,6 @@ Wouldn’t work later on because two separate ASP.NET API servers during two sep
 - **Database protection:** Patients are stored in PostgreSQL, and `ClinicDbContext` defines a unique index on `Patient.CivilId`. `PatientsController` checks for duplicates and also catches PostgreSQL unique-index violations, returning **409 Conflict** rather than creating another record.
 - **Patient reuse added:** The earlier "Remaining work" item above has now been addressed for Civil ID searches. The receptionist screen calls `GET /patients/search?civilId=...` and reuses an existing patient's ID when booking; it registers a new patient only when no matching Civil ID is found (**404**).
 - **Test coverage:** `CLINIC104()` in `Clinic104Tests.cs` uses an EF Core in-memory database to verify duplicate rejection and that only one record is created. This test does **not** itself exercise the PostgreSQL unique index or the frontend patient-reuse flow; those would require separate integration/frontend tests.
-- **Still limited:** Search by name or phone number and paginated patient search, requested elsewhere in Stage 2, are not yet present in the current API.
 
 
 ## CLINIC-105 — Cancel Button Sometimes Does Nothing
@@ -73,4 +72,3 @@ Wouldn’t work later on because two separate ASP.NET API servers during two sep
 - **Frontend refactor:** The cancellation handler and its error state moved from the original `app.ts`/`app.html` to the `Receptionist` feature component (`receptionist.ts`/`receptionist.html`). Failed cancellations still display a readable backend message and refresh the appointments list.
 - **Cancellation rules:** The API now requires a cancellation reason, rejects cancellations after an appointment has started or if it is already cancelled, and retains cancelled appointments in PostgreSQL using `IsCancelled` and `CancellationReason` instead of deleting their records.
 - **Updated test:** `should show an error and refresh after failed cancellation` in `frontend/src/app/clinic105.spec.ts` now tests the `Receptionist` component, supplies a cancellation reason through a mocked prompt, checks that the request includes that reason, and verifies the displayed **409 Conflict** message and refreshed list.
-- **Remaining UI improvement:** The current screen still uses a browser `prompt()` for the reason. Replacing it with an in-app dialog remains outstanding under the Stage 2 frontend requirements.

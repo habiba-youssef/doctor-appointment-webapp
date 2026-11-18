@@ -1,0 +1,109 @@
+
+/* Login Page Background */
+:host {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+  box-sizing: border-box;
+  background-color: #f4f6f8;
+  color: #333;
+  font-family: Arial, sans-serif;
+}
+
+/* Login Card */
+.login-container {
+  width: 100%;
+  max-width: 420px;
+  padding: 35px;
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+/* Heading */
+h1 {
+  color: #013e54;
+  text-align: center;
+  margin: 0 0 30px;
+  font-size: 26px;
+}
+
+/* Form Layout */
+form {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Labels */
+label {
+  font-weight: bold;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+/* Username and Password Inputs */
+input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 20px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+input:focus {
+  outline: 2px solid #013e54;
+  outline-offset: 1px;
+}
+
+/* Login Button */
+button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 5px;
+  border: none;
+  border-radius: 5px;
+  background-color: #013e54;
+  color: white;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background-color: #1b4d82;
+}
+
+button:disabled {
+  background-color: #d6d6d6;
+  color: #666;
+  cursor: not-allowed;
+}
+
+/* Login Error Message */
+.error-message {
+  color: #dc3545;
+  background-color: #fce8e8;
+  border: 1px solid #dc3545;
+  padding: 12px;
+  border-radius: 5px;
+  margin-top: 15px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* Mobile Screens */
+@media (max-width: 600px) {
+  :host {
+    padding: 10px;
+  }
+
+  .login-container {
+    padding: 25px 20px;
+  }
+}

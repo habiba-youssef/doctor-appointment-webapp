@@ -1,0 +1,66 @@
+
+name: clinic-e2e
+
+services:
+
+  # 1. Separate PostgreSQL test database
+  db:
+    image: postgres:18-alpine
+
+    environment:
+      POSTGRES_DB: clinic_booking_e2e
+      POSTGRES_USER: clinic_e2e_user
+      POSTGRES_PASSWORD: ${E2E_POSTGRES_PASSWORD:?Set E2E_POSTGRES_PASSWORD in .env}
+
+    ports:
+      - "127.0.0.1:5433:5432"
+
+    volumes:
+      - postgres_e2e_data:/var/lib/postgresql
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clinic_e2e_user -d clinic_booking_e2e"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+
+  # 2. ASP.NET Core API connected to TEST database
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+
+    ports:
+      - "127.0.0.1:5126:8080"
+
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTP_PORTS: 8080
+
+      ConnectionStrings__ClinicDb: "Host=db;Port=5432;Database=clinic_booking_e2e;Username=clinic_e2e_user;Password=${E2E_POSTGRES_PASSWORD:?Set E2E_POSTGRES_PASSWORD in .env}"
+
+      Jwt__Key: ${JWT_KEY:?Set JWT_KEY in .env}
+      SeedUsers__ReceptionistPassword: ${E2E_RECEPTIONIST_PASSWORD:?Set E2E_RECEPTIONIST_PASSWORD in .env}
+      SeedUsers__DoctorPassword: ${DOCTOR_PASSWORD:?Set DOCTOR_PASSWORD in .env}
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+
+  # 3. Angular frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+
+    ports:
+      - "127.0.0.1:4200:80"
+
+    depends_on:
+      - api
+
+
+volumes:
+  postgres_e2e_data:

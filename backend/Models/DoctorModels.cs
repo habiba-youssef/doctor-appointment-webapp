@@ -2,6 +2,7 @@ namespace DoctorsAppointment.Api.Models;
 
 public enum GenderOption
 {
+    NotSpecified,
     Female,
     Male
 }
@@ -17,23 +18,18 @@ public class Doctor
 	public decimal ConsultationFee { get; set;}
 }
 
-// Patient's class and structure
-public class Patient
-{
+// Each record represents one working day.
+public class DoctorSchedule {
     public int Id { get; set; }
-    public string FirstName { get; set; } = string.Empty;
-    public string LastName { get; set; } = string.Empty;
-	public GenderOption Gender{ get; set; }
-	public string PhoneNumber { get; set; } = string.Empty;
-	public DateOnly DateOfBirth {get; set;}
+    public int DoctorId { get; set; }
+    public DayOfWeek WorkingDays { get; set; }
+    public TimeOnly StartTime { get; set; }
+    public TimeOnly EndTime { get; set; }
 }
 
-// Appointment Class
-public class Appointment
+public class DoctorLeave
 {
     public int Id { get; set; }
     public int DoctorId { get; set; }
-    public int PatientId { get; set; }
-    public DateTime StartTime { get; set; }
-    public bool IsCancelled { get; set; }
+    public DateOnly LeaveDate { get; set; }
 }

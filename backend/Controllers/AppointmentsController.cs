@@ -1,184 +1,144 @@
 // Handles booking, listing, and cancelling appointments
 
 using Microsoft.AspNetCore.Mvc;
-using DoctorsAppointment.Api.Data;
 using DoctorsAppointment.Api.Models;
-
+using DoctorsAppointment.Api.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace DoctorsAppointment.Api.Controllers;
 
+public record CancelAppointmentRequest(string? Reason);
+public record RescheduleAppointmentRequest(int DoctorId, DateTime StartTime);
+
 [ApiController]
+[Authorize(Roles = "Receptionist")]
 [Route("appointments")]
 public class AppointmentsController : ControllerBase
 {
-    private readonly DataStore _dataStore;
+	private readonly AppointmentsService _appointmentService;
     // Constructor
-    public AppointmentsController(DataStore dataStore)
+	public AppointmentsController(AppointmentsService appointmentService)
+	{
+		_appointmentService = appointmentService;
+	}
+
+	// Convert an invalid field into a ValidationProblem response
+    private IActionResult ValidationError(string field, string? error)
     {
-        _dataStore = dataStore;
+        ModelState.AddModelError(
+            field,
+            error ?? "Invalid value."
+        );
+
+        return ValidationProblem(ModelState);
+    }
+
+	// Identify the field associated with a service validation error
+    private static string GetAppointmentErrorField(string? error)
+    {
+        return error switch
+        {
+            "Invalid appointment type." => "type",
+
+            "Appointments must start at :00, :15, :30 or :45" or
+            "Appointments are only available between 08:00 and 16:00." or
+            "Appointments are only available Sunday to Thursday." or
+            "Cannot book an appointment in the past." or
+            "Appointment is outside the doctor's working hours." or
+            "Doctor is not scheduled to work on this day." or
+            "Doctor is on leave on this date."
+                => "startTime",
+
+            // The service doesn't distinguish which ID is invalid
+            _ => "appointment"
+        };
     }
 
     // GET request to retrieve appointments
     [HttpGet]
-    public IActionResult GetAppointments(	// Filters Added
-		[FromQuery] int? doctorId,
-    	[FromQuery] DateOnly? date
-		// [FromQuery] string? speciality
-
-	)
+    public async Task<IActionResult> GetAppointments([FromQuery] int? doctorId, [FromQuery] DateOnly? date)
     {
-		var appointments = _dataStore.Appointments.AsEnumerable();
-
-		// Filter by Doctor ID
-		if (doctorId.HasValue)
-		{
-			appointments = appointments.Where(filter_id => filter_id.DoctorId == doctorId.Value);
-		}
-
-		// Filter by Date
-		if (date.HasValue)
-		{
-			appointments = appointments.Where(filter_date =>
-				DateOnly.FromDateTime(filter_date.StartTime) == date.Value);
-		}
-        // return Ok(_dataStore.Appointments);
-		return Ok(appointments.ToList());
+        // Ask the service to retrieve appointments
+        var appointments = await _appointmentService.GetAppointmentsAsync(doctorId, date);
+        // Return appointments to frontend
+        return Ok(appointments);
     }
 
 	// POST request to create new appointments
-		
 	[HttpPost]
-	public IActionResult CreateAppointment([FromBody] Appointment appointment)
+	public async Task<IActionResult> CreateAppointment([FromBody] Appointment appointment)
 	{
-		// 1. Validate Doctor and Patient IDs
-		if (!_dataStore.Doctors.Any(dr => dr.Id == appointment.DoctorId) ||
-			!_dataStore.Patients.Any(p => p.Id == appointment.PatientId))
-		{
-			return BadRequest("Invalid doctor or patient ID.");
-		}
+		// Go to service to create the appointment
+		var result = await _appointmentService.CreateAppointmentAsync(appointment);
 
-		// 2. Validate 30-minute appointment slots
-		if (appointment.StartTime == default ||
-			(appointment.StartTime.Minute != 0 &&
-			appointment.StartTime.Minute != 30) ||
-			appointment.StartTime.Second != 0 ||
-			appointment.StartTime.Millisecond != 0)
+		// Convert the service result into HTTP response
+		return result.Status switch
 		{
-			return BadRequest("Appointments must start on the hour or half hour.");
-		}
-
-		// 3. Validate working hours: 08:00 to 16:00
-		if (appointment.StartTime.Hour < 8 ||
-			appointment.StartTime.Hour >= 16)
-		{
-			return BadRequest("Appointments are only available from 08:00 to 16:00.");
-		}
-
-		// 4. Validate working days: Sunday to Thursday
-		if (appointment.StartTime.DayOfWeek == DayOfWeek.Friday ||
-			appointment.StartTime.DayOfWeek == DayOfWeek.Saturday)
-		{
-			return BadRequest("Appointments are only available Sunday to Thursday.");
-		}
-
-		// 5. Reject appointments in the past
-		if (appointment.StartTime <= DateTime.Now)
-		{
-			return BadRequest("Cannot book an appointment in the past.");
-		}
-		// 6. Prevent double booking Doctor
-		if (_dataStore.Appointments.Any(i =>
-			i.DoctorId == appointment.DoctorId &&
-			i.StartTime == appointment.StartTime &&
-			!i.IsCancelled))
-		{
-			return Conflict("This doctor already has an appointment at this time."); // Conflict because appointment info is valid, but the requested slot is already occupied
-		}
-
-		// Create appointment if all validations pass
-		appointment.Id = _dataStore.Appointments.Count + 1;
-		appointment.IsCancelled = false;
-		_dataStore.Appointments.Add(appointment);
-
-		return StatusCode(201, appointment);
+			BookingStatus.Created => StatusCode(201, result.Appointment),
+			BookingStatus.Invalid => ValidationError(GetAppointmentErrorField(result.Error), result.Error),
+			BookingStatus.Conflict => Problem(statusCode: 409, title: "Appointment conflict", detail: result.Error),
+			_ => throw new InvalidOperationException("Unexpected Booking Error")
+		};
 	}
 
-
-    // DELETE request to cancel an appointment
-    [HttpDelete("{id}")]
-    public IActionResult CancelAppointment(int id)
+    // PUT request to reschedule an existing appointment
+    [HttpPut("{id}")]
+    public async Task<IActionResult> RescheduleAppointment(int id, [FromBody] RescheduleAppointmentRequest request)
     {
-        // find the appointment by ID
-        var appointment = _dataStore.Appointments
-            .FirstOrDefault(a => a.Id == id); // instead of .Any() because it retrieves the actual object i.e. data
+        // Ask the service to reschedule the appointment
+        var result = await _appointmentService.RescheduleAppointmentAsync(
+            id,
+            request.DoctorId,
+            request.StartTime
+        );
 
-        // check if appointment exists
-        if (appointment == null)
+        // Convert the service result into an HTTP response
+        return result.Status switch
         {
-            return NotFound("Appointment not found.");
-        }
-
-        // Check if already cancelled
-        if (appointment.IsCancelled)
-        {
-            return Conflict("Appointment is already cancelled.");
-        }
-
-        // Cancel the appointment
-        appointment.IsCancelled = true;
-
-        return NoContent();
+            RescheduleStatus.Rescheduled => Ok(result.Appointment),
+            RescheduleStatus.NotFound => Problem(statusCode: 404, title: "Appointment not found", detail: result.Error),
+            RescheduleStatus.AlreadyCancelled => Problem(statusCode: 409, title: "Appointment already cancelled", detail: result.Error),
+            RescheduleStatus.AlreadyStarted => Problem(statusCode: 409, title: "Appointment already started", detail: result.Error),
+            RescheduleStatus.Invalid => ValidationError( GetAppointmentErrorField(result.Error), result.Error),
+            RescheduleStatus.Conflict => Problem(statusCode: 409, title: "Rescheduling conflict", detail: result.Error),
+            _ => throw new InvalidOperationException("Unexpected Reschedule Error.")
+        };
     }
 
-
-	// Get Doctor's Avaliability
-	[HttpGet("availability")]
-	public IActionResult GetAvailability(
-		[FromQuery] int doctorId,
-		[FromQuery] DateOnly date)
+    // DELETE request to cancel an appointment
+	[HttpDelete("{id}")]
+	public async Task<IActionResult> CancelAppointment(int id, [FromBody] CancelAppointmentRequest request)
 	{
-		// 1. Check if doctor exists
-		if (!_dataStore.Doctors.Any(doctor => doctor.Id == doctorId))
+		// Ask the service to cancel the appointment
+		var result = await _appointmentService.CancelAppointmentAsync(id, request.Reason);
+		// Convert the service result into an HTTP response
+		return result.Status switch
 		{
-			return NotFound("Doctor not found.");
-		}
+			CancellationStatus.Cancelled => NoContent(),
+			CancellationStatus.NotFound => Problem(statusCode: 404, title: "Appointment not found", detail: result.Error),
+			CancellationStatus.AlreadyCancelled => Problem(statusCode: 409, title: "Appointment already cancelled", detail: result.Error),
+			CancellationStatus.InvalidReason => ValidationError("reason", result.Error),
+			CancellationStatus.AlreadyStarted => Problem(statusCode: 409, title: "Appointment already started", detail: result.Error),
+			_ => throw new InvalidOperationException("Unexpected Cancellation Error.")
+		};
+	}
 
-		// 2. Check if date is valid
-		if (date == default)
+	// GET request to retrieve Doctor's Avaliability
+	[HttpGet("availability")]
+	public async Task<IActionResult> GetAvailability([FromQuery] int doctorId, [FromQuery] DateOnly date, [FromQuery] AppointmentType type)
+	{
+		// Ask the service to retrieve availability
+		var result = await _appointmentService.GetAvailabilityAsync(doctorId, date, type);
+
+		// Convert results into HTTP responses
+		return result.Status switch
 		{
-			return BadRequest("Invalid date.");
-		}
-
-		// 3. Check working days
-		if (date.DayOfWeek == DayOfWeek.Friday ||
-			date.DayOfWeek == DayOfWeek.Saturday)
-		{
-			return BadRequest("The clinic is closed on Fridays and Saturdays.");
-		}
-
-		// 4. Generate the 16 possible time slots
-		var slots = new List<object>();
-		var now = DateTime.Now;
-
-		for (int i = 0; i < 16; i++)
-		{
-			var slotTime = date.ToDateTime(new TimeOnly(8, 0))
-							.AddMinutes(i * 30);
-
-			// 5. Check if slot is already booked
-			bool booked = _dataStore.Appointments.Any(a =>
-				a.DoctorId == doctorId &&
-				a.StartTime == slotTime &&
-				!a.IsCancelled);
-
-			// 6. Add slot and availability status
-			slots.Add(new
-			{
-				time = slotTime.ToString("HH:mm"),
-				available = !booked && (slotTime > now),
-			});
-		}
-
-		return Ok(slots);
+			AvailabilityStatus.Valid => Ok(result.Slots),
+			AvailabilityStatus.InvalidDoc => Problem(statusCode: 404, title: "Doctor not found", detail: result.Error),
+			AvailabilityStatus.InvalidDate => ValidationError("date", result.Error),
+			AvailabilityStatus.InvalidType => ValidationError("type", result.Error),
+			AvailabilityStatus.Closed => ValidationError("date", result.Error),
+			_ => throw new InvalidOperationException("Unexpected availability result.")
+		};
 	}
 }

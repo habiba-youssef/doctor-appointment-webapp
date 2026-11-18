@@ -1,0 +1,112 @@
+
+:host {
+  display: block;
+  min-height: 100vh;
+  padding: 20px;
+  box-sizing: border-box;
+  background-color: #f4f6f8;
+  color: #333;
+  font-family: Arial, sans-serif;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+h1, h2 {
+  color: #013e54;
+}
+
+header p {
+  color: #666;
+}
+
+main {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+section {
+  background-color: white;
+  padding: 25px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+label {
+  font-weight: bold;
+}
+
+input {
+  padding: 10px;
+  margin: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+button {
+  background-color: #013e54;
+  color: white;
+  padding: 10px 15px;
+  margin: 5px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background-color: #1b4d82;
+}
+
+button:disabled {
+  background-color: #d6d6d6;
+  color: #666;
+  cursor: not-allowed;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+th, td {
+  padding: 12px;
+  border: 1px solid #ddd;
+  text-align: center;
+}
+
+th {
+  background-color: #013e54;
+  color: white;
+}
+
+tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.error-message {
+  color: #dc3545;
+  background-color: #fce8e8;
+  padding: 12px;
+  border-radius: 5px;
+}
+
+.success-message {
+  color: #155724;
+  background-color: #d4edda;
+  padding: 12px;
+  border-radius: 5px;
+}
+
+@media (max-width: 600px) {
+  section {
+    padding: 15px;
+    overflow-x: auto;
+  }
+
+  table {
+    font-size: 12px;
+  }
+}

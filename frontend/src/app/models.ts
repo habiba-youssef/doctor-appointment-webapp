@@ -10,6 +10,7 @@ export interface Doctor {
 
 export interface Patient {
   id?: number;
+  civilId: string;
   firstName: string;
   lastName: string;
   gender: number;
@@ -23,9 +24,38 @@ export interface Appointment {
   patientId: number;
   startTime: string;
   isCancelled: boolean;
+  type: AppointmentType
 }
 
 export interface TimeSlot {
   time: string;
   available: boolean;
+}
+
+export enum AppointmentType {
+    Consultation = 0,
+    FollowUp = 1,
+    Procedure = 2
+}
+
+export interface RescheduleForm {
+  appointmentId: number;
+  doctorId: number;
+  date: string;
+  time: string | null;
+}
+
+export enum AppointmentStatus {
+  Booked = 0,
+  Completed = 1,
+  NoShow = 2
+}
+
+export interface DoctorAppointment {
+  id: number;
+  patientId: number;
+  patientName: string;
+  startTime: string;
+  type: AppointmentType;
+  status: AppointmentStatus;
 }

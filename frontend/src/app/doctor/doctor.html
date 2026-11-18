@@ -1,0 +1,94 @@
+
+<header>
+  <h1>Clinic Appointment Booking</h1>
+  <p>Doctor Dashboard</p>
+
+  <button type="button" (click)="logout()">
+    Log Out
+  </button>
+</header>
+
+<main>
+  <section>
+    <h2>My Appointments</h2>
+
+    <p>Doctor ID: {{ doctorId }}</p>
+
+    <!-- Select the day -->
+    <label for="date">Select Date:</label>
+
+    <input
+      id="date"
+      type="date"
+      #dateInput
+      [value]="selectedDate()"
+      (change)="selectedDate.set(dateInput.value); loadAppointments()"
+    >
+
+    @if (loading()) {
+      <p>Loading appointments...</p>
+    }
+
+    @if (error()) {
+      <p class="error-message" role="alert">
+        {{ error() }}
+      </p>
+    }
+
+    @if (success()) {
+      <p class="success-message">
+        {{ success() }}
+      </p>
+    }
+
+    @if (!loading()) {
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Patient</th>
+            <th>Appointment Type</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @for (appointment of appointments(); track appointment.id) {
+            <tr>
+              <td>{{ appointment.startTime.slice(11, 16) }}</td>
+
+              <td>{{ appointment.patientName }}</td>
+
+              <td>{{ getTypeName(appointment.type) }}</td>
+
+              <td>{{ getStatusName(appointment.status) }}</td>
+
+              <td>
+                <button
+                  type="button"
+                  [disabled]="appointment.status !== AppointmentStatus.Booked || savingId() !== null"
+                  (click)="updateStatus(appointment.id, AppointmentStatus.Completed)">
+                  Completed
+                </button>
+
+                <button
+                  type="button"
+                  [disabled]="appointment.status !== AppointmentStatus.Booked || savingId() !== null"
+                  (click)="updateStatus(appointment.id, AppointmentStatus.NoShow)">
+                  No-show
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5">
+                No appointments for this date.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </section>
+</main>

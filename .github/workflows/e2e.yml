@@ -1,0 +1,91 @@
+
+name: Playwright E2E Tests
+
+# Run when code is pushed to stage-2
+on:
+  push:
+    branches: [stage-2]
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+
+    # GitHub repository secrets
+    env:
+      JWT_KEY: ${{ secrets.JWT_KEY }}
+      E2E_POSTGRES_PASSWORD: ${{ secrets.E2E_POSTGRES_PASSWORD }}
+      E2E_RECEPTIONIST_PASSWORD: ${{ secrets.E2E_RECEPTIONIST_PASSWORD }}
+      DOCTOR_PASSWORD: ${{ secrets.DOCTOR_PASSWORD }}
+
+    steps:
+      # STEP 1: Download repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # STEP 2: Set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # STEP 3: Check required secrets exist
+      - name: Check configuration
+        run: |
+          for name in JWT_KEY E2E_POSTGRES_PASSWORD E2E_RECEPTIONIST_PASSWORD DOCTOR_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "Missing GitHub secret: $name"
+              exit 1
+            fi
+          done
+
+      # STEP 4: Start test database, backend, frontend
+      - name: Start test environment
+        run: docker compose -f compose.e2e.yaml up -d --build --wait
+
+      # STEP 5: Ensure application is ready
+      - name: Wait for application
+        run: |
+          for i in {1..30}; do
+            if curl -fsS http://localhost:5126/status > /dev/null &&
+               curl -fsS http://localhost:4200/login > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Application did not start."
+          exit 1
+
+      # STEP 6: Install Playwright
+      - name: Install Playwright
+        working-directory: frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      # STEP 7: Run login and booking tests
+      - name: Run Playwright tests
+        working-directory: frontend
+        run: npx playwright test e2e/login.spec.ts e2e/booking.spec.ts --project=chromium
+
+      # STEP 8: Save test report
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      # STEP 9: Show logs when tests fail
+      - name: Show Docker logs
+        if: failure()
+        run: docker compose -f compose.e2e.yaml logs --tail=100
+
+      # STEP 10: Clean up test containers
+      - name: Clean up
+        if: always()
+        run: docker compose -f compose.e2e.yaml down -v

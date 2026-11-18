@@ -29,4 +29,5 @@ public class DataStore
 
         Doctors = doctor_data.GetRecords<Doctor>().ToList(); // converts csv rows into objects
     }
+    internal readonly object BookingLock = new object();    // putting the lock in the shared DataStore ensures every controller uses the same lock
 }

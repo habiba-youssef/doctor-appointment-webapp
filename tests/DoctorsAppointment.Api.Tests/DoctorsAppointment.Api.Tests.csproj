@@ -28,7 +28,6 @@
   <ItemGroup>
     <!-- Temporarily exclude old Stage 1 tests -->
     <Compile Remove="UnitTest1.cs" />
-    <Compile Remove="Clinic103Test.cs" />
     <Compile Remove="Clinic104Tests.cs" />
   </ItemGroup>
 

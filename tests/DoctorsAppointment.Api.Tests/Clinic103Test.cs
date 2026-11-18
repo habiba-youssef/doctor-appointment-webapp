@@ -1,9 +1,10 @@
 
 // dotnet test .\tests\DoctorsAppointment.Api.Tests\DoctorsAppointment.Api.Tests.csproj --filter "FullyQualifiedName~CLINIC103"
 
-
 using Xunit;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
 using DoctorsAppointment.Api.Controllers;
 using DoctorsAppointment.Api.Data;
 using DoctorsAppointment.Api.Models;
@@ -11,16 +12,20 @@ using DoctorsAppointment.Api.Models;
 public class Clinic103Tests
 {
     [Fact]
-    public void CLINIC103()
+    public async Task CLINIC103()
     {
-        // ARRANGE: Create the DataStore
-        var store = new DataStore(new[]
-        {
-            new Doctor { Id = 1 }
-        });
+        // ARRANGE 1: Create a temporary in-memory database
+        var options = new DbContextOptionsBuilder<ClinicDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        using var db = new ClinicDbContext(options);
 
         // Create the PatientsController
-        var controller = new PatientsController(store);
+        var controller = new PatientsController(
+            db,
+            TimeProvider.System
+        );
 
         // Create a patient WITHOUT specifying gender
         var patient = new Patient
@@ -34,15 +39,20 @@ public class Clinic103Tests
         };
 
         // ACT: Attempt to register the patient
-        var result = controller.CreatePatient(patient);
+        var result = await controller.CreatePatient(patient);
         
-        // ASSERT: Registration should fail because gender is missing
-        var response = Assert.IsType<BadRequestObjectResult>(result);
+        // ASSERT 1: Registration should return a validation error
+        var response = Assert.IsAssignableFrom<ObjectResult>(result);
+        var problem = Assert.IsType<ValidationProblemDetails>(response.Value);
 
-        // Verify the exact reason for rejection
-        Assert.Equal("Gender Selection is Required", response.Value);
+        // ASSERT 2: Verify that gender caused the validation failure
+        Assert.False(controller.ModelState.IsValid);
 
-        // Verify no patient was registered
-        Assert.Empty(store.Patients);
+        Assert.True(problem.Errors.ContainsKey("gender"));
+
+        Assert.Contains("Gender Selection is Required", problem.Errors["gender"]);
+
+        // ASSERT 3: Verify no patient was registered
+        Assert.Empty(db.Patients);
     }
 }

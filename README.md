@@ -224,6 +224,17 @@ On Windows, `reset-e2e.ps1` can reset the E2E database; it **deletes the E2E vol
 
 The current workflow is `.github/workflows/e2e.yml`. It runs the **Playwright Chromium login and booking tests** on pushes to `stage-2` and by manual dispatch, using repository secrets for test credentials. It does **not yet** run the complete backend and frontend test suites or automatically run on pull requests.
 
+
+### User Interface
+![Login Page UI](images/LoginPage.png)
+
+![Recptionist Dashboard (1)](images/ReceptionistView1.png)
+![Recptionist Dashboard (2)](images/ReceptionistView2.png)
+![Recptionist Dashboard (3)](images/ReceptionistView3.png)
+
+![Doctor's Page](images/DoctorView.png)
+
+
 ## Known limitations and future improvements
 
 - **Complete the requested CI coverage:** Extend GitHub Actions to build both applications and run all backend, frontend, and integration tests on every push and pull request.
